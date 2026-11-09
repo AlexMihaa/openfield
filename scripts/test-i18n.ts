@@ -18,6 +18,8 @@ assert.equal(initialLocale({ getItem: () => { throw new Error('blocked'); } }, [
 assert.equal(translate('Setup', 'en'), 'Setup');
 assert.equal(translate('Setup', 'ru'), 'Настройка');
 assert.equal(translate('New upstream text', 'ru'), 'New upstream text');
+assert.equal(translate('constructor', 'ru'), 'constructor');
+assert.equal(translate('__proto__', 'ru'), '__proto__');
 assert.equal(translate('take {0}', 'ru', { 0: '@Mara {1}' }), 'дубль @Mara {1}');
 assert.equal(translate('take {0}', 'ru'), 'дубль {0}');
 assert.equal(translate('Queued takes: {0}', 'ru', { 0: 5 }), 'Дубли в очереди: 5');

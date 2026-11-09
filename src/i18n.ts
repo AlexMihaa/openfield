@@ -25,7 +25,7 @@ export function setLocale(next: Locale) {
   listeners.forEach((listener) => listener());
 }
 export function translate(message: string, language: Locale, values: Record<string, unknown> = {}): string {
-  const template = language === 'ru' ? ru[message] ?? message : message;
+  const template = language === 'ru' && Object.hasOwn(ru, message) ? ru[message] : message;
   return template.replace(/\{(\w+)\}/g, (match, key: string) => Object.hasOwn(values, key) ? String(values[key]) : match);
 }
 export function tr(message: string, values?: Record<string, unknown>): string;
