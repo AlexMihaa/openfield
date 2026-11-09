@@ -4,6 +4,7 @@
  * Pictures come from uploads, drops (files or takes) or "Save to cast" on any
  * still in the Viewer.
  */
+import { tr } from '../i18n';
 import { useEffect, useRef, useState } from 'react';
 import { api, uploadFile, type CastKind, type CastMember, type CastSource } from '../api';
 import { refreshCast, useCast } from '../castStore';
@@ -36,13 +37,11 @@ export default function CastPage() {
       <div className="page-pad" style={{ maxWidth: 1500 }}>
         <div className="cast-head">
           <div>
-            <h1 className="display" style={{ fontSize: 'clamp(44px,5.4vw,80px)', margin: '8px 0 0' }}>Your <span className="hl">cast</span></h1>
+            <h1 className="display" style={{ fontSize: 'clamp(44px,5.4vw,80px)', margin: '8px 0 0' }}>{tr("Your ")}<span className="hl">{tr("cast")}</span></h1>
             <p className="dim" style={{ marginTop: 10, maxWidth: 640 }}>
-              Save a character, prop or place once. Type <b className="mono" style={{ color: 'var(--accent-hi)' }}>@</b> in any prompt to bring it in:
-              stills compose it from its pictures, videos hold it on a reference sheet, so the same face and the same coat show up in every shot.
-            </p>
+              {tr("Save a character, prop or place once. Type ")}<b className="mono" style={{ color: 'var(--accent-hi)' }}>@</b> {tr("in any prompt to bring it in: stills compose it from its pictures, videos hold it on a reference sheet, so the same face and the same coat show up in every shot.")}</p>
           </div>
-          {!open && <button type="button" className="btn accent" onClick={() => setParams({ new: '1', edit: null })}><Icon name="plus" size={14} />New cast member</button>}
+          {!open && <button type="button" className="btn accent" onClick={() => setParams({ new: '1', edit: null })}><Icon name="plus" size={14} />{tr("New cast member")}</button>}
         </div>
 
         {open && <CastForm key={editing?.id ?? 'new'} member={editing} onDone={() => setParams({ new: null, edit: null })} />}
@@ -50,8 +49,8 @@ export default function CastPage() {
         {cast.length === 0 && !open ? (
           <div className="hero-empty" style={{ paddingTop: 40 }}>
             <div className="fan">{[0, 1, 2, 3].map((i) => <div key={i} className="cast-ghost"><Icon name={['person', 'person', 'grid', 'image'][i]} size={34} /></div>)}</div>
-            <div className="display" style={{ fontSize: 'clamp(30px,4vw,52px)' }}>Nobody cast yet</div>
-            <p className="dim" style={{ marginTop: 12 }}>Drop a few pictures of the same person here, or open any still and pick Save to cast.</p>
+            <div className="display" style={{ fontSize: 'clamp(30px,4vw,52px)' }}>{tr("Nobody cast yet")}</div>
+            <p className="dim" style={{ marginTop: 12 }}>{tr("Drop a few pictures of the same person here, or open any still and pick Save to cast.")}</p>
           </div>
         ) : (
           <div className="cast-grid">
@@ -68,20 +67,20 @@ function CastCard({ m, on }: { m: CastMember; on: boolean }) {
   const prompt = (p: string) => encodeURIComponent(`@${m.name} ${p}`);
   return (
     <div className={`cast-card ${on ? 'on' : ''}`}>
-      <button type="button" className="cast-fan" onClick={() => setParams({ edit: String(m.id), new: null })} title="Edit">
-        {fan.map((r, i) => <div key={r.token} className={`f${fan.length}-${i}`}><img src={r.url} alt="" /></div>)}
+      <button type="button" className="cast-fan" onClick={() => setParams({ edit: String(m.id), new: null })} title={tr("Edit")}>
+        {fan.map((r, i) => <div key={r.token} className={`f${fan.length}-${i}`}><img src={r.url} alt={""} /></div>)}
       </button>
       <div className="cast-body">
         <div className="cast-title">
           <span className="display">{m.name}</span>
-          <span className="badge">{KIND_LABEL[m.kind]}</span>
+          <span className="badge">{tr(KIND_LABEL[m.kind])}</span>
         </div>
         <div className="mono cast-handle">@{m.name}</div>
-        <p className="cast-notes">{m.notes || <span className="dim">No description yet. Words help: what they look like, what they wear.</span>}</p>
+        <p className="cast-notes">{m.notes || <span className="dim">{tr("No description yet. Words help: what they look like, what they wear.")}</span>}</p>
         <div className="cast-actions">
-          <button type="button" className="btn sm" onClick={() => navigate(`/image?prompt=${prompt(m.kind === 'place' ? '' : 'in ')}`)}><Icon name="image" size={14} />Still</button>
-          <button type="button" className="btn sm" onClick={() => navigate(`/video?prompt=${prompt('')}`)}><Icon name="video" size={14} />Video</button>
-          <button type="button" className="btn sm ghost" onClick={() => setParams({ edit: String(m.id), new: null })}>Edit</button>
+          <button type="button" className="btn sm" onClick={() => navigate(`/image?prompt=${prompt(m.kind === 'place' ? '' : 'in ')}`)}><Icon name="image" size={14} />{tr("Still")}</button>
+          <button type="button" className="btn sm" onClick={() => navigate(`/video?prompt=${prompt('')}`)}><Icon name="video" size={14} />{tr("Video")}</button>
+          <button type="button" className="btn sm ghost" onClick={() => setParams({ edit: String(m.id), new: null })}>{tr("Edit")}</button>
         </div>
       </div>
     </div>
@@ -100,24 +99,24 @@ function CastForm({ member, onDone }: { member: CastMember | null; onDone: () =>
 
   async function add(files: FileList | File[]) {
     const imgs = Array.from(files).filter((f) => f.type.startsWith('image/')).slice(0, MAX - pics.length);
-    if (!imgs.length) { toast(pics.length >= MAX ? 'Six pictures is the most a cast member keeps' : 'Cast pictures are stills: PNG, JPEG or WebP', true); return; }
-    setBusy('Uploading...');
+    if (!imgs.length) { toast(pics.length >= MAX ? tr('Six pictures is the most a cast member keeps') : tr('Cast pictures are stills: PNG, JPEG or WebP'), true); return; }
+    setBusy(tr('Uploading...'));
     try {
       for (const f of imgs) {
         const token = await uploadFile(f);
         setPics((p) => [...p, { token, url: URL.createObjectURL(f) }].slice(0, MAX));
       }
     } catch (e) {
-      toast(e instanceof Error ? e.message : 'upload failed', true);
+      toast(e instanceof Error ? e.message : tr('upload failed'), true);
     } finally {
       setBusy(null);
     }
   }
   const zone = useDropZone((f) => void add(f));
-  usePageDrop(member ? `Drop pictures of ${member.name}` : 'Drop pictures for the new cast member', (f) => void add(f));
+  usePageDrop(member ? tr("Drop pictures of {0}", { 0: member.name }) : tr('Drop pictures for the new cast member'), (f) => void add(f));
 
   async function save() {
-    setBusy('Saving...');
+    setBusy(tr('Saving...'));
     try {
       const fresh: CastSource[] = pics.filter((p): p is { token: string; url: string } => 'token' in p).map((p) => ({ token: p.token }));
       if (member) {
@@ -126,22 +125,22 @@ function CastForm({ member, onDone }: { member: CastMember | null; onDone: () =>
           name, kind, notes, addRefs: fresh,
           removeRefs: member.refs.map((_, i) => i).filter((i) => !keep.has(i)),
         });
-        toast(`${name} saved`);
+        toast(tr("{0} saved", { 0: name }));
       } else {
         await api.createCast({ name, kind, notes, refs: fresh });
-        toast(`${name} joined the cast. Type @${name} in any prompt.`);
+        toast(tr("{0} joined the cast. Type @{1} in any prompt.", { 0: name, 1: name }));
       }
       await refreshCast();
       onDone();
     } catch (e) {
-      toast(e instanceof Error ? e.message : 'could not save', true);
+      toast(e instanceof Error ? e.message : tr('could not save'), true);
     } finally {
       setBusy(null);
     }
   }
 
   async function del() {
-    if (!member || !confirm(`Remove ${member.name} from the cast? Their pictures stay in your output folder.`)) return;
+    if (!member || !confirm(tr("Remove {0} from the cast? Their pictures stay in your output folder.", { 0: member.name }))) return;
     await api.deleteCast(member.id).catch((e) => toast(String(e), true));
     await refreshCast();
     onDone();
@@ -151,44 +150,44 @@ function CastForm({ member, onDone }: { member: CastMember | null; onDone: () =>
   return (
     <div className="cast-form">
       <div className="cast-form-pics">
-        <div className="label">Pictures · {pics.length} of {MAX}</div>
+        <div className="label">{tr("Pictures · ")}{pics.length} {tr("of ")}{MAX}</div>
         <div className="refs">
           {pics.map((p, i) => (
             <div className="ref" key={p.url}>
-              <img src={p.url} alt="" />
-              <span className="role">{i === 0 ? 'main' : `${i + 1}`}</span>
-              <button type="button" className="x" onClick={() => setPics((c) => c.filter((_, j) => j !== i))} aria-label="remove"><Icon name="x" size={12} /></button>
+              <img src={p.url} alt={""} />
+              <span className="role">{i === 0 ? tr('main') : `${i + 1}`}</span>
+              <button type="button" className="x" onClick={() => setPics((c) => c.filter((_, j) => j !== i))} aria-label={tr("remove")}><Icon name="x" size={12} /></button>
             </div>
           ))}
           {pics.length < MAX && (
             <div className={`well cast-add ${zone.over ? 'drag' : ''}`} onClick={() => input.current?.click()} {...zone.props}>
               <input ref={input} type="file" accept="image/*" multiple hidden onChange={(e) => e.target.files && void add(e.target.files)} />
               <Icon name="plus" />
-              <span>{pics.length ? 'Add' : 'Add pictures'}</span>
+              <span>{pics.length ? tr('Add') : tr('Add pictures')}</span>
             </div>
           )}
         </div>
-        <div className="label" style={{ textTransform: 'none', letterSpacing: 0 }}>{k.hint} The first picture is the main one.</div>
+        <div className="label" style={{ textTransform: 'none', letterSpacing: 0 }}>{tr(k.hint)} {tr("The first picture is the main one.")}</div>
       </div>
       <div className="cast-form-fields">
         <div className="rail-section">
-          <div className="label">Name</div>
-          <input ref={nameRef} className="field" value={name} maxLength={40} onChange={(e) => setName(e.target.value.replace(/^@+/, ''))} placeholder="Mara" />
-          <div className="label" style={{ textTransform: 'none', letterSpacing: 0 }}>You will type it as <span className="mono" style={{ color: 'var(--accent-hi)' }}>@{name.trim() || 'Name'}</span>.</div>
+          <div className="label">{tr("Name")}</div>
+          <input ref={nameRef} className="field" value={name} maxLength={40} onChange={(e) => setName(e.target.value.replace(/^@+/, ''))} placeholder={tr("Mara")} />
+          <div className="label" style={{ textTransform: 'none', letterSpacing: 0 }}>{tr("You will type it as ")}<span className="mono" style={{ color: 'var(--accent-hi)' }}>@{name.trim() || tr('Name')}</span>.</div>
         </div>
         <div className="seg">
-          {KINDS.map((x) => <button key={x.id} type="button" className={kind === x.id ? 'on' : ''} onClick={() => setKind(x.id)}>{x.label}</button>)}
+          {KINDS.map((x) => <button key={x.id} type="button" className={kind === x.id ? 'on' : ''} onClick={() => setKind(x.id)}>{tr(x.label)}</button>)}
         </div>
         <div className="rail-section">
-          <div className="label">In words</div>
+          <div className="label">{tr("In words")}</div>
           <textarea className="prompt" rows={4} value={notes} onChange={(e) => setNotes(e.target.value)}
-            placeholder={kind === 'character' ? 'A woman in her forties, black bob with a silver streak, round tortoiseshell glasses, rust corduroy jacket over a teal sweater.' : kind === 'prop' ? 'A dented brass lantern with a green glass chimney.' : 'A narrow night market under strings of bare bulbs, wet cobblestones.'} />
-          <div className="label" style={{ textTransform: 'none', letterSpacing: 0 }}>These words go into every prompt that mentions {name.trim() || 'them'}.</div>
+            placeholder={kind === 'character' ? tr('A woman in her forties, black bob with a silver streak, round tortoiseshell glasses, rust corduroy jacket over a teal sweater.') : kind === 'prop' ? tr('A dented brass lantern with a green glass chimney.') : tr('A narrow night market under strings of bare bulbs, wet cobblestones.')} />
+          <div className="label" style={{ textTransform: 'none', letterSpacing: 0 }}>{tr("These words go into every prompt that mentions ")}{name.trim() || tr('them')}.</div>
         </div>
         <div style={{ display: 'flex', gap: 8, marginTop: 'auto' }}>
-          <button type="button" className="btn accent" disabled={!!busy || !name.trim() || !pics.length} onClick={() => void save()}>{busy ?? (member ? 'Save' : 'Add to cast')}</button>
-          <button type="button" className="btn ghost" onClick={onDone}>Cancel</button>
-          {member && <button type="button" className="btn danger" style={{ marginLeft: 'auto' }} onClick={() => void del()}><Icon name="trash" size={14} />Remove</button>}
+          <button type="button" className="btn accent" disabled={!!busy || !name.trim() || !pics.length} onClick={() => void save()}>{tr(busy) ?? (member ? tr('Save') : tr('Add to cast'))}</button>
+          <button type="button" className="btn ghost" onClick={onDone}>{tr("Cancel")}</button>
+          {member && <button type="button" className="btn danger" style={{ marginLeft: 'auto' }} onClick={() => void del()}><Icon name="trash" size={14} />{tr("Remove")}</button>}
         </div>
       </div>
     </div>
@@ -212,15 +211,15 @@ export function SaveToCast({ takeId, onClose }: { takeId: number; onClose: () =>
     try {
       if (target === 'new') {
         const m = await api.createCast({ name, kind, notes, refs: [{ takeId }] });
-        toast(`${m.name} joined the cast. Type @${m.name} in any prompt.`);
+        toast(tr("{0} joined the cast. Type @{1} in any prompt.", { 0: m.name, 1: m.name }));
       } else {
         const m = await api.updateCast(target, { addRefs: [{ takeId }] });
-        toast(`Added to ${m.name}: ${m.refs.length} picture${m.refs.length > 1 ? 's' : ''}`);
+        toast(tr("Added to {0}: pictures: {1}", { 0: m.name, 1: m.refs.length }));
       }
       await refreshCast();
       onClose();
     } catch (e) {
-      toast(e instanceof Error ? e.message : 'could not save', true);
+      toast(e instanceof Error ? e.message : tr('could not save'), true);
     } finally {
       setBusy(false);
     }
@@ -229,27 +228,27 @@ export function SaveToCast({ takeId, onClose }: { takeId: number; onClose: () =>
   const full = typeof target === 'number' && (cast.find((m) => m.id === target)?.refs.length ?? 0) >= MAX;
   return (
     <div className="save-cast">
-      <div className="label">Save to cast</div>
+      <div className="label">{tr("Save to cast")}</div>
       <div className="chip-row">
-        <button type="button" className={`chip ${target === 'new' ? 'on' : ''}`} onClick={() => setTarget('new')}><Icon name="plus" size={13} />New</button>
+        <button type="button" className={`chip ${target === 'new' ? 'on' : ''}`} onClick={() => setTarget('new')}><Icon name="plus" size={13} />{tr("New")}</button>
         {cast.map((m) => (
-          <button key={m.id} type="button" className={`chip ${target === m.id ? 'on' : ''}`} onClick={() => setTarget(m.id)} title={`Add this picture to ${m.name}`}>
-            {m.refs[0] && <img className="chip-face" src={m.refs[0].url} alt="" />}{m.name}
+          <button key={m.id} type="button" className={`chip ${target === m.id ? 'on' : ''}`} onClick={() => setTarget(m.id)} title={tr("Add this picture to {0}", { 0: m.name })}>
+            {m.refs[0] && <img className="chip-face" src={m.refs[0].url} alt={""} />}{m.name}
           </button>
         ))}
       </div>
       {target === 'new' && (
         <>
-          <input className="field" value={name} maxLength={40} onChange={(e) => setName(e.target.value.replace(/^@+/, ''))} placeholder="Name, as you will type it after @" autoFocus />
-          <div className="seg">{KINDS.map((x) => <button key={x.id} type="button" className={kind === x.id ? 'on' : ''} onClick={() => setKind(x.id)}>{x.label}</button>)}</div>
-          <textarea className="prompt" rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="In words: what they look like, what they wear." />
+          <input className="field" value={name} maxLength={40} onChange={(e) => setName(e.target.value.replace(/^@+/, ''))} placeholder={tr("Name, as you will type it after @")} autoFocus />
+          <div className="seg">{KINDS.map((x) => <button key={x.id} type="button" className={kind === x.id ? 'on' : ''} onClick={() => setKind(x.id)}>{tr(x.label)}</button>)}</div>
+          <textarea className="prompt" rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder={tr("In words: what they look like, what they wear.")} />
         </>
       )}
       <div style={{ display: 'flex', gap: 6 }}>
         <button type="button" className="btn sm accent" disabled={busy || full || (target === 'new' && !name.trim())} onClick={() => void save()}>
-          {full ? 'Six pictures already' : target === 'new' ? 'Add to cast' : 'Add picture'}
+          {full ? tr('Six pictures already') : target === 'new' ? tr('Add to cast') : tr('Add picture')}
         </button>
-        <button type="button" className="btn sm ghost" onClick={onClose}>Cancel</button>
+        <button type="button" className="btn sm ghost" onClick={onClose}>{tr("Cancel")}</button>
       </div>
     </div>
   );

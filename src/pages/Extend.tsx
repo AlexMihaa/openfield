@@ -3,6 +3,7 @@
  * bridge two takes with a generated move. Both run on LTX-2.5 and save the
  * joined clip as a new take.
  */
+import { tr } from '../i18n';
 import { useState } from 'react';
 import { api } from '../api';
 import { CONTINUE_PROMPT, TRANSITION_STYLES, compilePrompt } from '../catalog';
@@ -41,10 +42,10 @@ export default function ExtendPage() {
   // A drop anywhere on the page. Extend: the clip. Transition: the first empty side,
   // From then To (the second file of a two-file drop goes to To); both full replaces To.
   usePageDrop(
-    !transition ? 'Drop a clip to extend it'
-      : !src ? 'Drop the first take: a clip or a still'
-      : !to ? 'Drop the second take: a clip or a still'
-      : 'Drop a take to replace the second one',
+    !transition ? tr('Drop a clip to extend it')
+      : !src ? tr('Drop the first take: a clip or a still')
+      : !to ? tr('Drop the second take: a clip or a still')
+      : tr('Drop a take to replace the second one'),
     async (files) => {
       if (!transition) {
         const s = await loadFile(files[0], ['video']);
@@ -73,12 +74,12 @@ export default function ExtendPage() {
 
   async function go() {
     if (!src) return;
-    setBusy('Queuing...');
+    setBusy(tr('Queuing...'));
     try {
       const r = transition ? await api.generate(transitionBody()) : await api.generate(extendBody());
-      toast(`Queued ${r.takeIds.length} take${r.takeIds.length > 1 ? 's' : ''}`);
+      toast(tr("Queued takes: {0}", { 0: r.takeIds.length }));
     } catch (e) {
-      toast(e instanceof Error ? e.message : 'failed', true);
+      toast(e instanceof Error ? e.message : tr('failed'), true);
     } finally {
       setBusy(null);
     }
@@ -117,84 +118,84 @@ export default function ExtendPage() {
     <div className="rail-layout" style={{ gridTemplateColumns: '360px 1fr' }}>
       <aside className="rail">
         <div className="tabs">
-          <button type="button" className={!transition ? 'on' : ''} onClick={() => setParams({ mode: null })}>Extend</button>
-          <button type="button" className={transition ? 'on' : ''} onClick={() => setParams({ mode: 'transition' })}>Transition</button>
+          <button type="button" className={!transition ? 'on' : ''} onClick={() => setParams({ mode: null })}>{tr("Extend")}</button>
+          <button type="button" className={transition ? 'on' : ''} onClick={() => setParams({ mode: 'transition' })}>{tr("Transition")}</button>
         </div>
 
         {!transition ? (
           <>
-            <SourceSlot label="Clip" value={src} onChange={setSrc} accept={['video']} title="Add a clip to extend" sub="Pick one of your takes below, or drop a video." />
+            <SourceSlot label={tr("Clip")} value={src} onChange={setSrc} accept={['video']} title={tr("Add a clip to extend")} sub="Pick one of your takes below, or drop a video." />
             <div className="seg">
-              <button type="button" className={direction === 'forward' ? 'on' : ''} onClick={() => setDirection('forward')}>Continue after</button>
-              <button type="button" className={direction === 'backward' ? 'on' : ''} onClick={() => setDirection('backward')}>Lead in before</button>
+              <button type="button" className={direction === 'forward' ? 'on' : ''} onClick={() => setDirection('forward')}>{tr("Continue after")}</button>
+              <button type="button" className={direction === 'backward' ? 'on' : ''} onClick={() => setDirection('backward')}>{tr("Lead in before")}</button>
             </div>
             <div className="dim" style={{ fontSize: 12.5, marginTop: -4 }}>
               {direction === 'forward'
-                ? 'The last second of the clip stays in view while the model writes what happens next, so motion and sound carry on.'
-                : 'Builds the moments before the first frame. Best for camera moves, weather and drift: the lead-in is written in reverse, so a person walking would walk backwards.'}
+                ? tr('The last second of the clip stays in view while the model writes what happens next, so motion and sound carry on.')
+                : tr('Builds the moments before the first frame. Best for camera moves, weather and drift: the lead-in is written in reverse, so a person walking would walk backwards.')}
             </div>
             <div className="rail-section">
-              <div className="label">What happens {direction === 'forward' ? 'next' : 'before'} · optional</div>
+              <div className="label">{tr("What happens ")}{direction === 'forward' ? tr('next') : tr('before')} {tr("· optional")}</div>
               <textarea className="prompt" rows={4} value={prompt} onChange={(e) => setPrompt(e.target.value)}
-                placeholder={src?.prompt ? `Empty keeps the take's prompt: ${src.prompt.slice(0, 90)}` : 'The storm breaks and a wave crashes over the rail.'} />
+                placeholder={src?.prompt ? tr("Empty keeps the take's prompt: {0}", { 0: src.prompt.slice(0, 90) }) : tr('The storm breaks and a wave crashes over the rail.')} />
             </div>
           </>
         ) : (
           <>
             <div className="join-row">
-              <SourceSlot label="From" value={src} onChange={setSrc} accept={['video', 'image']} title="First take" sub="" />
+              <SourceSlot label={tr("From")} value={src} onChange={setSrc} accept={['video', 'image']} title={tr("First take")} sub="" />
               <span className="arrow"><Icon name="chev" /></span>
-              <SourceSlot label="To" value={to} onChange={setTo} accept={['video', 'image']} title="Second take" sub="" />
+              <SourceSlot label={tr("To")} value={to} onChange={setTo} accept={['video', 'image']} title={tr("Second take")} sub="" />
             </div>
             <div className="rail-section">
-              <div className="label">Transition</div>
+              <div className="label">{tr("Transition")}</div>
               <div className="style-grid">
                 {TRANSITION_STYLES.map((s) => (
-                  <button key={s.id} type="button" className={`chip ${s.id === styleId ? 'on' : ''}`} title={s.text} onClick={() => setStyleId(s.id)}>{s.label}</button>
+                  <button key={s.id} type="button" className={`chip ${s.id === styleId ? 'on' : ''}`} title={s.text} onClick={() => setStyleId(s.id)}>{tr(s.label)}</button>
                 ))}
               </div>
             </div>
             <div className="rail-section">
-              <div className="label">Direction · optional</div>
-              <textarea className="prompt" rows={3} value={prompt} onChange={(e) => setPrompt(e.target.value)} placeholder="The sparks become rain." />
+              <div className="label">{tr("Direction · optional")}</div>
+              <textarea className="prompt" rows={3} value={prompt} onChange={(e) => setPrompt(e.target.value)} placeholder={tr("The sparks become rain.")} />
             </div>
           </>
         )}
 
         <div className="chip-row" style={{ alignItems: 'center' }}>
-          <ChipMenu icon="clock" value={seconds} onChange={setSeconds} title={transition ? 'Bridge length' : 'New footage'}
+          <ChipMenu icon="clock" value={seconds} onChange={setSeconds} title={transition ? tr('Bridge length') : tr('New footage')}
             options={(transition ? [1, 2, 3, 4] : [2, 3, 5, 8]).map((d) => ({ value: d, label: `${transition ? '' : '+'}${d}s` }))} />
           <TierChip app={transition ? 'transition' : 'extend'} value={res} onChange={setRes} />
           <Stepper value={count} min={1} max={4} onChange={setCount} fmt={(v) => `${v}/4`} />
-          {hasSound && <span className="chip" style={{ gap: 10 }}><Icon name="audio" size={14} />Sound <Switch on={audio} onChange={setAudio} label="sound" /></span>}
+          {hasSound && <span className="chip" style={{ gap: 10 }}><Icon name="audio" size={14} />{tr("Sound ")}<Switch on={audio} onChange={setAudio} label={tr("sound")} /></span>}
         </div>
 
         <button type="button" className="generate" style={{ marginTop: 'auto' }} disabled={!!busy || !ready} onClick={() => void go()}>
-          <span>{busy ?? (transition ? 'Make transition' : direction === 'forward' ? 'Extend' : 'Add lead-in')}</span>
-          <span className="cost">{size.w}x{size.h}{est ? ` · ${fmtSeconds(est * count)}` : ' · LTX-2.5'}</span>
+          <span>{tr(busy) ?? (transition ? tr('Make transition') : direction === 'forward' ? tr('Extend') : tr('Add lead-in'))}</span>
+          <span className="cost">{size.w}x{size.h}{est ? ` · ${fmtSeconds(est * count)}` : tr(' · LTX-2.5')}</span>
         </button>
       </aside>
 
       <section className="canvas">
         <div className="canvas-head">
-          <div className="tabs" style={{ borderBottom: 0 }}><button type="button" className="on">Takes</button></div>
+          <div className="tabs" style={{ borderBottom: 0 }}><button type="button" className="on">{tr("Takes")}</button></div>
         </div>
         <div className="canvas-body">
           {takes.length === 0 ? (
             <div className="hero-empty">
-              <div className="label" style={{ marginBottom: 14 }}>{transition ? 'Two takes, one move' : 'The shot keeps rolling'}</div>
+              <div className="label" style={{ marginBottom: 14 }}>{transition ? tr('Two takes, one move') : tr('The shot keeps rolling')}</div>
               <div className="display" style={{ fontSize: 'clamp(34px,4.6vw,60px)' }}>
-                {transition ? <>Cut <span className="hl">without a cut</span></> : <>Roll past <span className="hl">the last frame</span></>}
+                {transition ? <>{tr("Cut ")}<span className="hl">{tr("without a cut")}</span></> : <>{tr("Roll past ")}<span className="hl">{tr("the last frame")}</span></>}
               </div>
               <div className="steps3">
                 {transition ? <>
-                  <div><span className="label">01</span><b>Pick two takes</b><span className="dim">Clips or stills, in play order.</span></div>
-                  <div><span className="label">02</span><b>Choose the move</b><span className="dim">Morph, whip pan, match cut, light leak and more.</span></div>
-                  <div><span className="label">03</span><b>Make it</b><span className="dim">You get one clip: first take, bridge, second take.</span></div>
+                  <div><span className="label">01</span><b>{tr("Pick two takes")}</b><span className="dim">{tr("Clips or stills, in play order.")}</span></div>
+                  <div><span className="label">02</span><b>{tr("Choose the move")}</b><span className="dim">{tr("Morph, whip pan, match cut, light leak and more.")}</span></div>
+                  <div><span className="label">03</span><b>{tr("Make it")}</b><span className="dim">{tr("You get one clip: first take, bridge, second take.")}</span></div>
                 </> : <>
-                  <div><span className="label">01</span><b>Pick a take</b><span className="dim">Any clip, yours or dropped in.</span></div>
-                  <div><span className="label">02</span><b>Say what happens</b><span className="dim">Or leave it empty to carry on as it was.</span></div>
-                  <div><span className="label">03</span><b>Extend</b><span className="dim">The new seconds are joined onto the original.</span></div>
+                  <div><span className="label">01</span><b>{tr("Pick a take")}</b><span className="dim">{tr("Any clip, yours or dropped in.")}</span></div>
+                  <div><span className="label">02</span><b>{tr("Say what happens")}</b><span className="dim">{tr("Or leave it empty to carry on as it was.")}</span></div>
+                  <div><span className="label">03</span><b>{tr("Extend")}</b><span className="dim">{tr("The new seconds are joined onto the original.")}</span></div>
                 </>}
               </div>
             </div>

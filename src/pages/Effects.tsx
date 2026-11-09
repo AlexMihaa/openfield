@@ -3,6 +3,7 @@
  * weights. Clip effects (IC-LoRA) re-render a source clip frame-locked; still
  * effects animate one image with a plain LoRA. Definitions live in ../effects.ts.
  */
+import { tr } from '../i18n';
 import { useEffect, useState } from 'react';
 import { api, inputUrl, mediaUrl, posterUrl, takeAsInput, uploadFile, type BundleStatus } from '../api';
 import { artFor } from '../catalog';
@@ -73,7 +74,7 @@ export default function EffectsPage() {
     const url = inputUrl(token);
     if (kind === 'clip') {
       const m = await probeClip(url);
-      if (m.s < 1) { toast('Clip is too short. Use 1 to 8 seconds.', true); return; }
+      if (m.s < 1) { toast(tr('Clip is too short. Use 1 to 8 seconds.'), true); return; }
       setInputs((c) => ({ ...c, clip: { kind, token, url, w: m.w, h: m.h, seconds: m.s, name } }));
       if (fx.input !== 'clip') setParams({ effect: EFFECTS.find((e) => e.input === 'clip')!.id });
     } else {
@@ -90,13 +91,13 @@ export default function EffectsPage() {
 
   async function addFile(f: File) {
     const kind = f.type.startsWith('video/') ? 'clip' : f.type.startsWith('image/') ? 'still' : null;
-    if (!kind) { toast('Drop a video clip or an image', true); return; }
-    if (f.size > 90e6) { toast('File is over 90 MB. Trim it first.', true); return; }
-    setBusy('Uploading...');
+    if (!kind) { toast(tr('Drop a video clip or an image'), true); return; }
+    if (f.size > 90e6) { toast(tr('File is over 90 MB. Trim it first.'), true); return; }
+    setBusy(tr('Uploading...'));
     try {
       await adopt(await uploadFile(f), f.name, kind);
     } catch (e) {
-      toast(e instanceof Error ? e.message : 'upload failed', true);
+      toast(e instanceof Error ? e.message : tr('upload failed'), true);
     } finally {
       setBusy(null);
     }
@@ -104,19 +105,19 @@ export default function EffectsPage() {
 
   // A drop anywhere on the page: a video fills the clip slot, an image the still
   // slot, and the effect switches to one that takes it if needed.
-  usePageDrop('Drop a clip for a clip effect, or an image for a still effect', (files) => {
+  usePageDrop(tr('Drop a clip for a clip effect, or an image for a still effect'), (files) => {
     const f = files[0];
     if (f.type.startsWith('video/') || f.type.startsWith('image/')) void addFile(f);
-    else toast('Drop a video clip or an image', true);
+    else toast(tr('Drop a video clip or an image'), true);
   });
 
   async function fromLibrary(id: number, still: boolean) {
     setPicking(false);
-    setBusy('Loading take...');
+    setBusy(tr('Loading take...'));
     try {
       await adopt(await takeAsInput(id, still ? `take_${id}.png` : `take_${id}.mp4`), `take ${id}`, still ? 'still' : 'clip');
     } catch (e) {
-      toast(e instanceof Error ? e.message : 'failed', true);
+      toast(e instanceof Error ? e.message : tr('failed'), true);
     } finally {
       setBusy(null);
     }
@@ -124,18 +125,18 @@ export default function EffectsPage() {
 
   async function go() {
     if (!input) return;
-    setBusy('Queuing...');
+    setBusy(tr('Queuing...'));
     try {
       const r = await api.generate({
         kind: 'effect', app: 'effects', effect: fx.id, videoModel: 'ltx25', prompt: effectPrompt(fx, text), userPrompt: text || fx.name, text,
         width: size.w, height: size.h, seconds, loop: fx.loopable ? loop : undefined, count,
         sourceVideo: fx.input === 'clip' ? input.token : undefined, startImage: fx.input === 'still' ? input.token : undefined,
-        shotName: `${fx.name} ${text}`.trim().slice(0, 40),
+        shotName: `${tr(fx.name)} ${text}`.trim().slice(0, 40),
       });
-      toast(`Queued ${r.takeIds.length} take${r.takeIds.length > 1 ? 's' : ''}`);
+      toast(tr("Queued takes: {0}", { 0: r.takeIds.length }));
       setParams({ tab: 'takes' });
     } catch (e) {
-      toast(e instanceof Error ? e.message : 'failed', true);
+      toast(e instanceof Error ? e.message : tr('failed'), true);
     } finally {
       setBusy(null);
     }
@@ -155,38 +156,37 @@ export default function EffectsPage() {
         <button type="button" className="preset-hero" onClick={() => setParams({ tab: 'effects' })}>
           <EffectArt fx={fx} />
           <div className="txt">
-            <div className="display">{fx.name}</div>
-            <div className="label">{fx.input === 'clip' ? 'Clip in, clip out' : 'Still in, clip out'} · LTX-2.5</div>
+            <div className="display">{tr(fx.name)}</div>
+            <div className="label">{fx.input === 'clip' ? tr('Clip in, clip out') : tr('Still in, clip out')} {tr("· LTX-2.5")}</div>
           </div>
-          <span className="chip change"><Icon name="wand" size={13} />Change</span>
+          <span className="chip change"><Icon name="wand" size={13} />{tr("Change")}</span>
         </button>
-        <div className="dim" style={{ fontSize: 12.5, marginTop: -4 }}>{fx.blurb}</div>
+        <div className="dim" style={{ fontSize: 12.5, marginTop: -4 }}>{tr(fx.blurb)}</div>
         {fx.id === 'cutout' && (
           <div className="compiled" style={{ fontFamily: 'var(--font-ui)', fontSize: 12.5 }}>
-            This effect regenerates the matte with LTX at the size you pick. For a transparent clip at full size, use{' '}
-            <a {...linkProps('/cutout')} style={{ color: 'var(--accent)' }}>Remove background</a>: faster, and ProRes 4444 with alpha.
-          </div>
+            {tr("This effect regenerates the matte with LTX at the size you pick. For a transparent clip at full size, use")}{' '}
+            <a {...linkProps('/cutout')} style={{ color: 'var(--accent)' }}>{tr("Remove background")}</a>{tr(": faster, and ProRes 4444 with alpha.")}</div>
         )}
         {!installed && (
           <div className="label" style={{ color: 'var(--accent)', textTransform: 'none', letterSpacing: 0 }}>
-            Not installed: {fx.lora}. Run npm run models -- --only {fx.bundle}.
+            {tr("Not installed: ")}{fx.lora}{tr(". Run npm run models -- --only ")}{fx.bundle}.
           </div>
         )}
 
         <div className="rail-section">
-          <div className="label">{fx.input === 'clip' ? 'Source clip' : 'Still'}</div>
+          <div className="label">{fx.input === 'clip' ? tr('Source clip') : tr('Still')}</div>
           {input ? (
             <div className="ref" style={{ aspectRatio: `${input.w || 16} / ${input.h || 9}` }}>
-              {input.kind === 'clip' ? <video src={input.url} muted loop autoPlay playsInline /> : <img src={input.url} alt="" />}
-              <span className="role">{input.kind === 'clip' ? `${Math.min(fx.maxSeconds, input.seconds).toFixed(1)}s` : 'first frame'}</span>
-              <button type="button" className="x" onClick={() => setInputs((c) => ({ ...c, [fx.input]: null }))} aria-label="remove"><Icon name="x" size={12} /></button>
+              {input.kind === 'clip' ? <video src={input.url} muted loop autoPlay playsInline /> : <img src={input.url} alt={""} />}
+              <span className="role">{input.kind === 'clip' ? `${Math.min(fx.maxSeconds, input.seconds).toFixed(1)}s` : tr('first frame')}</span>
+              <button type="button" className="x" onClick={() => setInputs((c) => ({ ...c, [fx.input]: null }))} aria-label={tr("remove")}><Icon name="x" size={12} /></button>
             </div>
           ) : (
             <>
               <DropWell accept={fx.input === 'clip' ? 'video/*' : 'image/*'} onFile={addFile} icon={fx.input === 'clip' ? 'video' : 'image'}
-                title={fx.input === 'clip' ? 'Add the clip' : 'Add the still'}
+                title={fx.input === 'clip' ? tr('Add the clip') : tr('Add the still')}
                 sub={fx.input === 'clip' ? `Up to ${fx.maxSeconds} seconds are used.` : 'It becomes the first frame.'} />
-              <button type="button" className="btn sm" onClick={() => setPicking(true)}><Icon name="grid" size={14} />From your library</button>
+              <button type="button" className="btn sm" onClick={() => setPicking(true)}><Icon name="grid" size={14} />{tr("From your library")}</button>
               {fx.input === 'clip' && <PhoneDrop onClip={(token, name) => adopt(token, name, 'clip')} />}
             </>
           )}
@@ -194,30 +194,30 @@ export default function EffectsPage() {
 
         {fx.field && (
           <div className="rail-section">
-            <div className="label">{fx.field.label}</div>
+            <div className="label">{tr(fx.field.label)}</div>
             <textarea className="prompt" rows={3} value={text} onChange={(e) => setText(e.target.value)}
               placeholder={fx.field.default || fx.field.placeholder}
               onKeyDown={(e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && input) void go(); }} />
             <details>
-              <summary className="label" style={{ cursor: 'pointer' }}>Final prompt</summary>
+              <summary className="label" style={{ cursor: 'pointer' }}>{tr("Final prompt")}</summary>
               <div className="compiled" style={{ marginTop: 6 }}>{effectPrompt(fx, text)}</div>
             </details>
           </div>
         )}
-        {!fx.field && <div className="label" style={{ textTransform: 'none', letterSpacing: 0 }}>No prompt: the clip is the only guide.</div>}
+        {!fx.field && <div className="label" style={{ textTransform: 'none', letterSpacing: 0 }}>{tr("No prompt: the clip is the only guide.")}</div>}
 
         <div className="chip-row" style={{ alignItems: 'center' }}>
           {fx.input === 'clip'
             ? <span className="chip"><Icon name="clock" size={14} />{seconds}s</span>
-            : <ChipMenu icon="clock" value={stillSeconds} onChange={setStillSeconds} title="Duration"
+            : <ChipMenu icon="clock" value={stillSeconds} onChange={setStillSeconds} title={tr("Duration")}
                 options={[3, 5, 8].filter((s) => s <= fx.maxSeconds).map((s) => ({ value: s, label: `${s}s` }))} />}
           <TierChip app="effects" value={res} onChange={setRes} />
           <Stepper value={count} min={1} max={4} onChange={setCount} fmt={(v) => `${v}/4`} />
-          {fx.loopable && <span className="chip" style={{ gap: 10 }}><Icon name="loop" size={14} />Loop <Switch on={loop} onChange={setLoop} label="loop" /></span>}
+          {fx.loopable && <span className="chip" style={{ gap: 10 }}><Icon name="loop" size={14} />{tr("Loop ")}<Switch on={loop} onChange={setLoop} label={tr("loop")} /></span>}
         </div>
 
         <button type="button" className="generate" style={{ marginTop: 'auto' }} disabled={!!busy || !input || !installed} onClick={() => void go()}>
-          <span>{busy ?? `Apply ${fx.name}`}</span>
+          <span>{tr(busy) ?? tr("Apply {0}", { 0: tr(fx.name) })}</span>
           <span className="cost">{size.w}x{size.h}{est ? ` · ${fmtSeconds(est * count)}` : ''}</span>
         </button>
       </aside>
@@ -225,8 +225,8 @@ export default function EffectsPage() {
       <section className="canvas">
         <div className="canvas-head">
           <div className="tabs" style={{ borderBottom: 0 }}>
-            <button type="button" className={tab === 'effects' ? 'on' : ''} onClick={() => setParams({ tab: 'effects' })}>Effects</button>
-            <button type="button" className={tab === 'takes' ? 'on' : ''} onClick={() => setParams({ tab: 'takes' })}>Takes</button>
+            <button type="button" className={tab === 'effects' ? 'on' : ''} onClick={() => setParams({ tab: 'effects' })}>{tr("Effects")}</button>
+            <button type="button" className={tab === 'takes' ? 'on' : ''} onClick={() => setParams({ tab: 'takes' })}>{tr("Takes")}</button>
           </div>
         </div>
         <div className="canvas-body">
@@ -262,16 +262,16 @@ function EffectGrid({ value, missing, onPick }: { value: string; missing: Set<st
     <div className="picker">
       <div className="picker-top">
         {GROUPS.map((g) => (
-          <button key={g.id} type="button" className={`pill ${group === g.id ? 'active' : ''}`} onClick={() => setGroup(g.id)}>{g.label}</button>
+          <button key={g.id} type="button" className={`pill ${group === g.id ? 'active' : ''}`} onClick={() => setGroup(g.id)}>{tr(g.label)}</button>
         ))}
-        <span className="dim" style={{ marginLeft: 'auto', fontSize: 12.5 }}>LTX-2.5 LoRAs, on your GPU</span>
+        <span className="dim" style={{ marginLeft: 'auto', fontSize: 12.5 }}>{tr("LTX-2.5 LoRAs, on your GPU")}</span>
       </div>
       <div className="picker-grid">
         {list.map((e) => (
-          <button key={e.id} type="button" className={`preset-card ${e.id === value ? 'on' : ''}`} onClick={() => onPick(e)} title={e.blurb}>
+          <button key={e.id} type="button" className={`preset-card ${e.id === value ? 'on' : ''}`} onClick={() => onPick(e)} title={tr(e.blurb)}>
             <EffectArt fx={e} />
-            <span className="cat badge">{missing.has(e.lora) ? 'Not installed' : e.input === 'clip' ? 'Clip' : 'Still'}</span>
-            <span className="name">{e.name}</span>
+            <span className="cat badge">{missing.has(e.lora) ? tr('Not installed') : e.input === 'clip' ? tr('Clip') : tr('Still')}</span>
+            <span className="name">{tr(e.name)}</span>
           </button>
         ))}
       </div>
@@ -300,14 +300,14 @@ function LibraryPicker({ still, onPick, onClose }: { still: boolean; onPick: (id
     <div className="viewer-back" style={{ display: 'block', background: 'rgba(0,0,0,0.82)', overflowY: 'auto' }} onClick={onClose}>
       <div className="page-pad" onClick={(e) => e.stopPropagation()}>
         <div className="section-head" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h2 className="display">Pick a {still ? 'still' : 'clip'}</h2>
-          <button type="button" className="icon-btn" onClick={onClose} aria-label="close"><Icon name="x" /></button>
+          <h2 className="display">{tr("Pick a ")}{still ? tr('still') : tr('clip')}</h2>
+          <button type="button" className="icon-btn" onClick={onClose} aria-label={tr("close")}><Icon name="x" /></button>
         </div>
-        {takes.length === 0 ? <div className="dim">No finished {still ? 'stills' : 'videos'} yet.</div> : (
+        {takes.length === 0 ? <div className="dim">{tr("No finished ")}{still ? tr('stills') : tr('videos')} {tr("yet.")}</div> : (
           <div className="picker-grid">
             {takes.map((t) => (
               <button key={t.id} type="button" className="preset-card" style={{ aspectRatio: '16 / 10' }} onClick={() => onPick(t.id, still)}>
-                {still ? <img className="art" src={mediaUrl(t.id)} alt="" /> : <img className="art" src={posterUrl(t.id)} alt="" />}
+                {still ? <img className="art" src={mediaUrl(t.id)} alt={""} /> : <img className="art" src={posterUrl(t.id)} alt={""} />}
                 <span className="name" style={{ fontSize: 14 }}>{(settingsOf(t).userPrompt || t.shot_name || '').slice(0, 40)}</span>
               </button>
             ))}

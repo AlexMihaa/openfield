@@ -5,6 +5,7 @@
  * or ProRes 4444 with alpha for clips (the take itself is a preview over a
  * checkerboard). Or put the subject over a color, a blur or a new picture.
  */
+import { tr } from '../i18n';
 import { useEffect, useState } from 'react';
 import { api, inputUrl, mediaUrl, uploadFile, type Take } from '../api';
 import { CUTOUT_BACKGROUNDS, CUTOUT_COLORS, CUTOUT_MAX_SECONDS, CUTOUT_MODES, cutoutSize, type CutoutBackground, type CutoutMode } from '../catalog';
@@ -73,29 +74,29 @@ export default function CutoutPage() {
 
   async function addFile(f: File) {
     const isVideo = f.type.startsWith('video/');
-    if (!isVideo && !f.type.startsWith('image/')) { toast('Drop a still (PNG, JPEG, WebP) or a clip (MP4, MOV)', true); return; }
-    setBusy('Uploading...');
+    if (!isVideo && !f.type.startsWith('image/')) { toast(tr('Drop a still (PNG, JPEG, WebP) or a clip (MP4, MOV)'), true); return; }
+    setBusy(tr('Uploading...'));
     try {
       const url = URL.createObjectURL(f);
       const meta = isVideo ? await probeClip(url) : { ...(await dimsOf(url)), s: 0 };
       const token = await uploadFile(f);
       setSrc({ kind: isVideo ? 'video' : 'image', token, url, w: meta.w, h: meta.h, seconds: meta.s, name: f.name.replace(/\.[^.]+$/, '') });
       setParams({ take: null });
-      if (isVideo && meta.s > CUTOUT_MAX_SECONDS + 0.5) toast(`Using the first ${CUTOUT_MAX_SECONDS} seconds of the clip`);
+      if (isVideo && meta.s > CUTOUT_MAX_SECONDS + 0.5) toast(tr("Using the first {0} seconds of the clip", { 0: CUTOUT_MAX_SECONDS }));
     } catch (e) {
-      toast(e instanceof Error ? e.message : 'upload failed', true);
+      toast(e instanceof Error ? e.message : tr('upload failed'), true);
     } finally {
       setBusy(null);
     }
   }
 
   async function addBackground(f: File) {
-    if (!f.type.startsWith('image/')) { toast('The new background is a still image', true); return; }
-    setBusy('Uploading...');
+    if (!f.type.startsWith('image/')) { toast(tr('The new background is a still image'), true); return; }
+    setBusy(tr('Uploading...'));
     try { setBgImage(await uploadFile(f)); setBackground('image'); } catch (e) { toast(String(e), true); } finally { setBusy(null); }
   }
 
-  usePageDrop('Drop a still or a clip to cut out', (files) => void addFile(files[0]));
+  usePageDrop(tr('Drop a still or a clip to cut out'), (files) => void addFile(files[0]));
 
   function cutoutBody() {
     const s = src!;
@@ -114,14 +115,14 @@ export default function CutoutPage() {
 
   async function go() {
     if (!src) return;
-    if (background === 'image' && !bgImage) { toast('Add the picture to put behind the subject', true); return; }
-    setBusy('Queuing...');
+    if (background === 'image' && !bgImage) { toast(tr('Add the picture to put behind the subject'), true); return; }
+    setBusy(tr('Queuing...'));
     try {
       const r = await api.generate(cutoutBody());
       setView(null);
-      toast(`Queued ${r.takeIds.length > 1 ? `${r.takeIds.length} cut outs` : 'the cut out'}`);
+      toast(tr("Queued {0}", { 0: r.takeIds.length > 1 ? `${r.takeIds.length} cut outs` : 'the cut out' }));
     } catch (e) {
-      toast(e instanceof Error ? e.message : 'failed', true);
+      toast(e instanceof Error ? e.message : tr('failed'), true);
     } finally {
       setBusy(null);
     }
@@ -132,93 +133,93 @@ export default function CutoutPage() {
   return (
     <div className="rail-layout" style={{ gridTemplateColumns: '360px 1fr' }}>
       <aside className="rail">
-        <div className="display" style={{ fontSize: 26 }}>Remove background</div>
-        <div className="dim" style={{ fontSize: 12.5, marginTop: -4 }}>Cut the subject out of a still or a clip. Keep it transparent, or put it somewhere new.</div>
+        <div className="display" style={{ fontSize: 26 }}>{tr("Remove background")}</div>
+        <div className="dim" style={{ fontSize: 12.5, marginTop: -4 }}>{tr("Cut the subject out of a still or a clip. Keep it transparent, or put it somewhere new.")}</div>
 
         <div className="rail-section">
-          <div className="label">{video ? 'Clip' : src ? 'Still' : 'Still or clip'}</div>
+          <div className="label">{video ? tr('Clip') : src ? tr('Still') : tr('Still or clip')}</div>
           {src ? (
             <div className="ref" style={{ aspectRatio: `${src.w || 16} / ${src.h || 9}` }}>
-              {video ? <video src={src.url} muted loop autoPlay playsInline /> : <img src={src.url} alt="" />}
-              <span className="role start">{src.take ? `take ${src.take}` : video ? `${Math.min(CUTOUT_MAX_SECONDS, src.seconds).toFixed(1)}s` : 'your image'}</span>
-              <button type="button" className="x" onClick={() => { setSrc(null); setParams({ take: null }); }} aria-label="remove"><Icon name="x" size={12} /></button>
+              {video ? <video src={src.url} muted loop autoPlay playsInline /> : <img src={src.url} alt={""} />}
+              <span className="role start">{src.take ? tr("take {0}", { 0: src.take }) : video ? `${Math.min(CUTOUT_MAX_SECONDS, src.seconds).toFixed(1)}s` : tr('your image')}</span>
+              <button type="button" className="x" onClick={() => { setSrc(null); setParams({ take: null }); }} aria-label={tr("remove")}><Icon name="x" size={12} /></button>
             </div>
           ) : (
-            <DropWell accept="image/*,video/*" onFile={(f) => void addFile(f)} icon="cutout" title="Add a still or a clip" sub={`Or open any take in the Library and pick Remove background. Clips up to ${CUTOUT_MAX_SECONDS} s.`} />
+            <DropWell accept="image/*,video/*" onFile={(f) => void addFile(f)} icon="cutout" title={tr("Add a still or a clip")} sub={`Or open any take in the Library and pick Remove background. Clips up to ${CUTOUT_MAX_SECONDS} s.`} />
           )}
         </div>
 
         {video && (
           <div className="rail-section">
-            <div className="label">How to follow it</div>
+            <div className="label">{tr("How to follow it")}</div>
             <div className="seg">
               {CUTOUT_MODES.map((m) => (
-                <button key={m.id} type="button" className={mode === m.id ? 'on' : ''} onClick={() => setMode(m.id)}>{m.label}</button>
+                <button key={m.id} type="button" className={mode === m.id ? 'on' : ''} onClick={() => setMode(m.id)}>{tr(m.label)}</button>
               ))}
             </div>
-            <div className="dim" style={{ fontSize: 12.5 }}>{CUTOUT_MODES.find((m) => m.id === mode)!.note}</div>
+            <div className="dim" style={{ fontSize: 12.5 }}>{tr(CUTOUT_MODES.find((m) => m.id === mode)!.note)}</div>
             {mode !== 'matte' && (
-              <input className="field" value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="What to keep: person, the dog, the red car" />
+              <input className="field" value={subject} onChange={(e) => setSubject(e.target.value)} placeholder={tr("What to keep: person, the dog, the red car")} />
             )}
           </div>
         )}
 
         <div className="rail-section">
-          <div className="label">Background</div>
+          <div className="label">{tr("Background")}</div>
           <div className="seg">
             {CUTOUT_BACKGROUNDS.map((b) => (
-              <button key={b.id} type="button" className={background === b.id ? 'on' : ''} onClick={() => setBackground(b.id)}>{b.label}</button>
+              <button key={b.id} type="button" className={background === b.id ? 'on' : ''} onClick={() => setBackground(b.id)}>{tr(b.label)}</button>
             ))}
           </div>
-          <div className="dim" style={{ fontSize: 12.5 }}>{CUTOUT_BACKGROUNDS.find((b) => b.id === background)!.note}</div>
+          <div className="dim" style={{ fontSize: 12.5 }}>{tr(CUTOUT_BACKGROUNDS.find((b) => b.id === background)!.note)}</div>
           {background === 'color' && (
             <div className="chip-row" style={{ alignItems: 'center' }}>
               {CUTOUT_COLORS.map((c) => (
                 <button key={c} type="button" className={`swatch ${color === c ? 'on' : ''}`} style={{ background: c }} onClick={() => setColor(c)} aria-label={c} />
               ))}
-              <input type="color" className="swatch" value={color} onChange={(e) => setColor(e.target.value)} aria-label="Pick a color" />
+              <input type="color" className="swatch" value={color} onChange={(e) => setColor(e.target.value)} aria-label={tr("Pick a color")} />
             </div>
           )}
           {background === 'image' && (bgImage ? (
             <div className="ref" style={{ aspectRatio: `${src?.w || 16} / ${src?.h || 9}` }}>
-              <img src={inputUrl(bgImage)} alt="" />
-              <span className="role">new background</span>
-              <button type="button" className="x" onClick={() => setBgImage(null)} aria-label="remove"><Icon name="x" size={12} /></button>
+              <img src={inputUrl(bgImage)} alt={""} />
+              <span className="role">{tr("new background")}</span>
+              <button type="button" className="x" onClick={() => setBgImage(null)} aria-label={tr("remove")}><Icon name="x" size={12} /></button>
             </div>
           ) : (
-            <DropWell accept="image/*" onFile={(f) => void addBackground(f)} icon="image" compact title="+ Picture to put behind" sub="" />
+            <DropWell accept="image/*" onFile={(f) => void addBackground(f)} icon="image" compact title={tr("+ Picture to put behind")} sub="" />
           ))}
         </div>
 
         <div className="chip-row" style={{ alignItems: 'center' }}>
           {src && size.w > 0 && <span className="chip"><Icon name="aspect" size={14} />{size.w}x{size.h}</span>}
           {video && <span className="chip"><Icon name="clock" size={14} />{seconds}s</span>}
-          {video && <span className="chip" style={{ gap: 10 }}><Icon name="audio" size={14} />Sound <Switch on={audio} onChange={setAudio} label="sound" /></span>}
+          {video && <span className="chip" style={{ gap: 10 }}><Icon name="audio" size={14} />{tr("Sound ")}<Switch on={audio} onChange={setAudio} label={tr("sound")} /></span>}
         </div>
 
         <button type="button" className="generate" style={{ marginTop: 'auto' }} disabled={!!busy || !src} onClick={() => void go()}>
-          <span>{busy ?? 'Remove background'}</span>
-          <span className="cost">{est ? fmtSeconds(est) : video && mode !== 'matte' ? 'BiRefNet + SAM 3.1' : 'BiRefNet'}</span>
+          <span>{tr(busy) ?? tr('Remove background')}</span>
+          <span className="cost">{est ? fmtSeconds(est) : video && mode !== 'matte' ? tr('BiRefNet + SAM 3.1') : tr('BiRefNet')}</span>
         </button>
       </aside>
 
       <section className="canvas">
         <div className="canvas-head">
           <div className="tabs" style={{ borderBottom: 0 }}>
-            <button type="button" className={!viewTake ? 'on' : ''} onClick={() => setView(null)}>Cut outs</button>
-            {viewTake && <button type="button" className="on">Before and after</button>}
+            <button type="button" className={!viewTake ? 'on' : ''} onClick={() => setView(null)}>{tr("Cut outs")}</button>
+            {viewTake && <button type="button" className="on">{tr("Before and after")}</button>}
           </div>
-          {viewTake && <button type="button" className="icon-btn" onClick={() => setView(null)} aria-label="close"><Icon name="x" /></button>}
+          {viewTake && <button type="button" className="icon-btn" onClick={() => setView(null)} aria-label={tr("close")}><Icon name="x" /></button>}
         </div>
         <div className="canvas-body">
           {viewTake ? <CutoutCompare take={viewTake} onOpen={() => setViewing(viewTake.id)} /> : takes.length === 0 ? (
             <div className="hero-empty">
-              <div className="label" style={{ marginBottom: 14 }}>No green screen</div>
-              <div className="display" style={{ fontSize: 'clamp(34px,4.6vw,60px)' }}>Keep the subject. <span className="hl">Lose the rest.</span></div>
+              <div className="label" style={{ marginBottom: 14 }}>{tr("No green screen")}</div>
+              <div className="display" style={{ fontSize: 'clamp(34px,4.6vw,60px)' }}>{tr("Keep the subject. ")}<span className="hl">{tr("Lose the rest.")}</span></div>
               <div className="steps3">
-                <div><span className="label">01</span><b>Add a still or a clip</b><span className="dim">Or press Remove background on any take.</span></div>
-                <div><span className="label">02</span><b>Pick a background</b><span className="dim">Transparent, a color, a blur or a new picture.</span></div>
-                <div><span className="label">03</span><b>Take it anywhere</b><span className="dim">PNG with alpha, or ProRes 4444 for your edit.</span></div>
+                <div><span className="label">01</span><b>{tr("Add a still or a clip")}</b><span className="dim">{tr("Or press Remove background on any take.")}</span></div>
+                <div><span className="label">02</span><b>{tr("Pick a background")}</b><span className="dim">{tr("Transparent, a color, a blur or a new picture.")}</span></div>
+                <div><span className="label">03</span><b>{tr("Take it anywhere")}</b><span className="dim">{tr("PNG with alpha, or ProRes 4444 for your edit.")}</span></div>
               </div>
             </div>
           ) : (
@@ -248,26 +249,26 @@ function CutoutCompare({ take, onOpen }: { take: Take; onOpen: () => void }) {
   const fill = { position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' } as const;
   return (
     <div style={{ maxWidth: 1100, margin: '0 auto' }}>
-      {take.status !== 'done' ? <div className="empty">{take.status === 'failed' ? `Failed: ${take.error}` : 'Rendering...'}</div> : (
+      {take.status !== 'done' ? <div className="empty">{take.status === 'failed' ? tr("Failed: {0}", { 0: take.error }) : tr('Rendering...')}</div> : (
         <div className={`compare ${s.background === 'transparent' ? 'checker' : ''}`} style={{ aspectRatio: `${s.width} / ${s.height}` }}
           onMouseMove={(e) => { if (e.buttons === 1) set(e); }} onClick={set}>
-          {image ? <img src={mediaUrl(take.id)} alt="" style={fill} /> : <video src={mediaUrl(take.id)} muted loop autoPlay playsInline style={fill} />}
+          {image ? <img src={mediaUrl(take.id)} alt={""} style={fill} /> : <video src={mediaUrl(take.id)} muted loop autoPlay playsInline style={fill} />}
           <div style={{ position: 'absolute', inset: 0, clipPath: `inset(0 ${100 - x}% 0 0)` }}>
-            {image ? <img src={before} alt="" style={fill} /> : <video src={before} muted loop autoPlay playsInline style={fill} />}
+            {image ? <img src={before} alt={""} style={fill} /> : <video src={before} muted loop autoPlay playsInline style={fill} />}
           </div>
           <div className="compare-line" style={{ left: `${x}%` }} />
-          <span className="badge" style={{ position: 'absolute', top: 12, left: 12 }}>before</span>
-          <span className="badge" style={{ position: 'absolute', top: 12, right: 12 }}>cut out</span>
+          <span className="badge" style={{ position: 'absolute', top: 12, left: 12 }}>{tr("before")}</span>
+          <span className="badge" style={{ position: 'absolute', top: 12, right: 12 }}>{tr("cut out")}</span>
         </div>
       )}
       <div className="dim" style={{ marginTop: 10, fontSize: 12.5 }}>
-        Drag across the frame to compare.{!image && s.background === 'transparent' && ' The clip here is a preview over a checkerboard; the download keeps the alpha.'}
+        {tr("Drag across the frame to compare.")}{!image && s.background === 'transparent' && tr(' The clip here is a preview over a checkerboard; the download keeps the alpha.')}
       </div>
       {take.status === 'done' && (
         <div className="chip-row" style={{ marginTop: 12, gap: 8 }}>
-          <button type="button" className="btn sm accent" onClick={onOpen}><Icon name="sparkle" size={14} />Open</button>
-          {s.alphaPath && <a className="btn sm" href={alphaUrl(take.id)}><Icon name="download" size={14} />ProRes 4444 with alpha</a>}
-          <a className="btn sm" href={`${mediaUrl(take.id)}?download=1`}><Icon name="download" size={14} />{image ? (s.background === 'transparent' ? 'PNG with alpha' : 'PNG') : 'Preview MP4'}</a>
+          <button type="button" className="btn sm accent" onClick={onOpen}><Icon name="sparkle" size={14} />{tr("Open")}</button>
+          {s.alphaPath && <a className="btn sm" href={alphaUrl(take.id)}><Icon name="download" size={14} />{tr("ProRes 4444 with alpha")}</a>}
+          <a className="btn sm" href={`${mediaUrl(take.id)}?download=1`}><Icon name="download" size={14} />{image ? (s.background === 'transparent' ? tr('PNG with alpha') : tr('PNG')) : tr('Preview MP4')}</a>
         </div>
       )}
     </div>

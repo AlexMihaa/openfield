@@ -8,6 +8,7 @@
  * Render then films the clay with that look. The scene is plain data
  * (src/stage.ts) and every take keeps it, so any Stage take reopens here.
  */
+import { tr } from '../i18n';
 import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
 import { api, inputUrl, mediaUrl, posterUrl, takeAsInput, uploadFile, type StageBlocking, type Take } from '../api';
 import { usePageDrop, useDropZone } from '../drop';
@@ -195,7 +196,7 @@ export default function StagePage() {
     if (!tk) return;
     const s = settingsOf(tk);
     setParams({ take: null });
-    if (s.app !== 'stage' || !s.scene) { toast('That take was not made in Stage', true); return; }
+    if (s.app !== 'stage' || !s.scene) { toast(tr('That take was not made in Stage'), true); return; }
     void (async () => {
       try {
         const sc = cleanStageScene(s.scene);
@@ -209,9 +210,9 @@ export default function StagePage() {
         view.current?.resetFrame();
         if (isImage(tk) && tk.status === 'done') setLook({ token: await takeAsInput(tk.id), take: tk.id, key: lookKeyOf(sc) });
         else if (s.lookImage) setLook({ token: s.lookImage, take: s.lookTake, key: lookKeyOf(sc) });
-        toast(`Loaded the set from take ${tk.id}`);
+        toast(tr("Loaded the set from take {0}", { 0: tk.id }));
       } catch (e) {
-        toast(e instanceof Error ? e.message : 'could not load that set', true);
+        toast(e instanceof Error ? e.message : tr('could not load that set'), true);
       }
     })();
   }, [fromTake, allTakes.length > 0]);
@@ -222,7 +223,7 @@ export default function StagePage() {
     const tk = allTakes.find((x) => x.id === fromProp);
     if (!tk) return;
     setParams({ prop: null });
-    if (!isModel(tk) || tk.status !== 'done') { toast('That take is not a finished 3D model', true); return; }
+    if (!isModel(tk) || tk.status !== 'done') { toast(tr('That take is not a finished 3D model'), true); return; }
     addModel(tk);
   }, [fromProp, allTakes.length > 0]);
 
@@ -232,7 +233,7 @@ export default function StagePage() {
     const tk = allTakes.find((x) => x.id === fromLook);
     if (!tk) return;
     setParams({ look: null });
-    if (!isImage(tk) || tk.status !== 'done') { toast('That take is not a finished still', true); return; }
+    if (!isImage(tk) || tk.status !== 'done') { toast(tr('That take is not a finished still'), true); return; }
     void lookFromTake(tk);
   }, [fromLook, allTakes.length > 0]);
 
@@ -262,7 +263,7 @@ export default function StagePage() {
     if (picked === id) setPicked(null);
   }
   function addProp(type: Exclude<PropType, 'glb'>) {
-    if (scene.props.length >= MAX_PROPS) { toast(`Up to ${MAX_PROPS} props`, true); return; }
+    if (scene.props.length >= MAX_PROPS) { toast(tr("Up to {0} props", { 0: MAX_PROPS }), true); return; }
     const aim = scene.keys[0].target;
     const at: Vec3 = [Math.round((aim[0] + (Math.random() * 2 - 1) * 1.5) * 10) / 10, 0, Math.round((aim[2] + (Math.random() * 2 - 1) * 1.5) * 10) / 10];
     const p = newProp(type, at);
@@ -271,27 +272,27 @@ export default function StagePage() {
   }
   async function addGlb(f: File) {
     try {
-      setBusy('Adding the model');
+      setBusy(tr('Adding the model'));
       const token = await uploadFile(new File([f], f.name, { type: 'model/gltf-binary' }));
       const aim = scene.keys[0].target;
       const p: StageProp = { id: newPropId(), type: 'glb', pos: [aim[0], 0, aim[2]], size: [1.5, 1.5, 1.5], rot: 0, asset: token, label: f.name.replace(/\.glb$/i, '').slice(0, 40) };
       setScene((s) => ({ ...s, props: [...s.props, p] }));
       setPicked(p.id);
     } catch (e) {
-      toast(e instanceof Error ? e.message : 'could not add the model', true);
+      toast(e instanceof Error ? e.message : tr('could not add the model'), true);
     } finally {
       setBusy(null);
     }
   }
   /** A model from the 3D library (an Object take), loaded by its take id. */
   function addModel(tk: Take) {
-    if (scene.props.length >= MAX_PROPS) { toast(`Up to ${MAX_PROPS} props`, true); return; }
+    if (scene.props.length >= MAX_PROPS) { toast(tr("Up to {0} props", { 0: MAX_PROPS }), true); return; }
     const aim = scene.keys[0].target;
     const p = modelProp(tk.id, modelName(tk), [aim[0], 0, aim[2]]);
     setScene((s) => ({ ...s, props: [...s.props, p] }));
     setPicked(p.id);
     setMode('set');
-    toast(`Added ${p.label} to the set`);
+    toast(tr("Added {0} to the set", { 0: p.label }));
   }
   /** A preset fills the keys from the first one (evenly spread); editing them after makes the move Custom. */
   function applyMove(id: string) {
@@ -322,14 +323,14 @@ export default function StagePage() {
   }
   /** A new key at the playhead (snapped to a frame), holding the view as it is now. */
   function addKeyAtPlayhead() {
-    if (scene.keys.length >= MAX_KEYS) { toast(`Up to ${MAX_KEYS} camera keys`, true); return; }
+    if (scene.keys.length >= MAX_KEYS) { toast(tr("Up to {0} camera keys", { 0: MAX_KEYS }), true); return; }
     const at = snapToFrame(t, frames);
     const cam = view.current?.currentView();
     if (!cam) return;
     const r = insertKey(scene, at, cam, gap * 0.999);
     if (!r) {
       const on = times.findIndex((x) => Math.abs(x - at) < gap);
-      if (on >= 0) { pickKey(on, false); toast(`Key ${on + 1} is at the playhead already. Frame the shot, then Set key from this view.`); }
+      if (on >= 0) { pickKey(on, false); toast(tr("Key {0} is at the playhead already. Frame the shot, then Set key from this view.", { 0: on + 1 })); }
       return;
     }
     setPlaying(false);
@@ -337,19 +338,19 @@ export default function StagePage() {
     setKey(r.index);
     setT(at);
     view.current?.resetFrame();
-    toast(`Added key ${r.index + 1} at ${(at * scene.seconds).toFixed(1)}s`);
+    toast(tr("Added key {0} at {1}s", { 0: r.index + 1, 1: (at * scene.seconds).toFixed(1) }));
   }
   /** Store the Camera view into the selected key. */
   function setKeyFromView() {
-    if (key === null) { toast('Pick a key first, or Add key at playhead', true); return; }
+    if (key === null) { toast(tr('Pick a key first, or Add key at playhead'), true); return; }
     const cam = view.current?.currentView();
     if (!cam) return;
     setKeys(scene.keys.map((k, j) => (j === key ? { ...k, pos: cam.pos, target: cam.target } : k)));
     view.current?.resetFrame();
-    toast(`Key ${key + 1} set from this view`);
+    toast(tr("Key {0} set from this view", { 0: key + 1 }));
   }
   function removeKey(i: number) {
-    if (scene.keys.length <= 2) { toast('The camera needs at least two keys', true); return; }
+    if (scene.keys.length <= 2) { toast(tr('The camera needs at least two keys'), true); return; }
     setKeys(dropKey(scene, i));
     setKey(null);
     view.current?.resetFrame();
@@ -419,9 +420,9 @@ export default function StagePage() {
     if (blocked.current?.key === k) return blocked.current.b;
     const sz = stageSize(scene.aspect, q);
     const n = stageFrames(scene.seconds);
-    setBusy(`Drawing the blocking 0/${n}`);
-    const f = await renderBlocking(scene, sz, n, lookSize(scene.aspect), (d, total) => setBusy(`Drawing the blocking ${d}/${total}`));
-    setBusy('Sending the blocking');
+    setBusy(tr("Drawing the blocking 0/{0}", { 0: n }));
+    const f = await renderBlocking(scene, sz, n, lookSize(scene.aspect), (d, total) => setBusy(tr("Drawing the blocking {0}/{1}", { 0: d, 1: total })));
+    setBusy(tr('Sending the blocking'));
     const b = await api.stageBlocking({ width: f.width, height: f.height, clay: f.clay, depth: f.depth, clayStill: f.clayStill, depthStill: f.depthStill });
     blocked.current = { key: k, b };
     return b;
@@ -430,7 +431,7 @@ export default function StagePage() {
   async function makeLook() {
     try {
       const b = await blockingFor(res);
-      setBusy('Queuing the look frame');
+      setBusy(tr('Queuing the look frame'));
       const body = {
         kind: 'stage-look', app: 'stage', mode: 'look', engine: lookEngine, prompt, userPrompt: prompt, scene, resolution: res, lookKey,
         depthImage: b.depthImage, clayImage: b.clayImage, width: ls.w, height: ls.h, count: lookCount,
@@ -438,9 +439,9 @@ export default function StagePage() {
       };
       const r = await api.generate(body);
       setWaitLook(r.takeIds);
-      toast(`Making ${r.takeIds.length} look frame${r.takeIds.length > 1 ? 's' : ''}. The first one becomes the look.`);
+      toast(tr("Making look frames: {0}. The first one becomes the look.", { 0: r.takeIds.length }));
     } catch (e) {
-      toast(e instanceof Error ? e.message : 'failed', true);
+      toast(e instanceof Error ? e.message : tr('failed'), true);
     } finally {
       setBusy(null);
     }
@@ -449,7 +450,7 @@ export default function StagePage() {
   async function go() {
     try {
       const b = await blockingFor(res);
-      setBusy('Queuing the shot');
+      setBusy(tr('Queuing the shot'));
       const body = {
         kind: 'stage', app: 'stage', videoModel: 'stage', prompt, userPrompt: prompt, scene, resolution: res, lookEngine,
         clayVideo: b.clayVideo, depthVideo: b.depthVideo, depthImage: b.depthImage, clayImage: b.clayImage,
@@ -458,9 +459,9 @@ export default function StagePage() {
         shotName: (prompt || describeScene(scene)).slice(0, 40),
       };
       const r = await api.generate(body);
-      toast(look ? `Rendering ${r.takeIds.length} shot${r.takeIds.length > 1 ? 's' : ''}` : 'Making a look frame first, then the shot');
+      toast(look ? tr("Rendering shots: {0}", { 0: r.takeIds.length }) : tr('Making a look frame first, then the shot'));
     } catch (e) {
-      toast(e instanceof Error ? e.message : 'failed', true);
+      toast(e instanceof Error ? e.message : tr('failed'), true);
     } finally {
       setBusy(null);
     }
@@ -469,20 +470,20 @@ export default function StagePage() {
   /** An imported picture becomes the look frame, cropped to the shot's aspect when it differs. */
   async function importLook(src: LookSource, announce = true) {
     try {
-      setBusy('Adding the look frame');
+      setBusy(tr('Adding the look frame'));
       const r = await fitLookFrame(src, scene.aspect);
       lookSource.current = src;
       setLook({ token: r.token, take: src.take, key: lookKeyOf(scene), note: r.note });
       setLibrary(false);
-      if (announce) toast(r.note ? 'Look frame added, cropped to fit the shot' : 'Look frame added');
+      if (announce) toast(r.note ? tr('Look frame added, cropped to fit the shot') : tr('Look frame added'));
     } catch (e) {
-      toast(e instanceof Error ? e.message : 'could not add the look frame', true);
+      toast(e instanceof Error ? e.message : tr('could not add the look frame'), true);
     } finally {
       setBusy(null);
     }
   }
   async function lookFromFile(f: File) {
-    if (!f.type.startsWith('image/')) { toast('A look frame is an image', true); return; }
+    if (!f.type.startsWith('image/')) { toast(tr('A look frame is an image'), true); return; }
     await importLook({ blob: f, name: f.name });
   }
   /** A still from the library. A Stage look frame made for this set keeps its own staleness key. */
@@ -493,17 +494,17 @@ export default function StagePage() {
       const k = settingsOf(x).app === 'stage' ? settingsOf(x).lookKey : undefined;
       if (k) setLook((l) => (l && l.take === x.id ? { ...l, key: k } : l));
     } catch (e) {
-      toast(e instanceof Error ? e.message : 'could not load that still', true);
+      toast(e instanceof Error ? e.message : tr('could not load that still'), true);
     }
   }
   function clearLook() { setLook(null); lookSource.current = null; }
   const lookDrop = useDropZone((files) => void lookFromFile(files[0]));
-  usePageDrop('Drop an image for the look frame, or a .glb model to add it as a prop', (files) => {
+  usePageDrop(tr('Drop an image for the look frame, or a .glb model to add it as a prop'), (files) => {
     const glb = files.find((f) => /\.glb$/i.test(f.name));
     if (glb) { void addGlb(glb); return; }
     const img = files.find((f) => f.type.startsWith('image/'));
     if (img) void lookFromFile(img);
-    else toast('Stage takes an image (the look frame) or a .glb model', true);
+    else toast(tr('Stage takes an image (the look frame) or a .glb model'), true);
   });
 
   // ---------- takes ----------
@@ -518,7 +519,7 @@ export default function StagePage() {
   const useAsLook = (x: Take) => lookFromTake(x);
   const stills = useMemo(() => allTakes.filter((x) => isImage(x) && x.status === 'done' && x.output_path).slice(0, 12), [allTakes]);
 
-  const keyName = (i: number) => `Key ${i + 1}`;
+  const keyName = (i: number) => tr("Key {0}", { 0: i + 1 });
   const secs = (u: number) => `${(u * scene.seconds).toFixed(1)}s`;
   const moveName = scene.move === 'custom' ? 'Custom' : CAMERA_MOVES.find((m) => m.id === scene.move)?.name;
   const moving = prop?.to ? prop : null;
@@ -527,29 +528,29 @@ export default function StagePage() {
     <div className="rail-layout stage-page" style={{ gridTemplateColumns: '380px 1fr' }}>
       <aside className="rail">
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div className="display" style={{ fontSize: 26 }}>Stage</div>
+          <div className="display" style={{ fontSize: 26 }}>{tr("Stage")}</div>
           <TierChip app="stage" value={res} onChange={setRes} />
         </div>
 
         <div className="rail-section">
-          <div className="label">The shot</div>
+          <div className="label">{tr("The shot")}</div>
           <MentionBox className="prompt" rows={3} value={prompt} onChange={setPrompt}
-            placeholder="What the finished shot looks like. Example: a night market under paper lanterns, wet stone, @Mara in a rust coat by the stall. Type @ for your cast." />
+            placeholder={tr("What the finished shot looks like. Example: a night market under paper lanterns, wet stone, @Mara in a rust coat by the stall. Type @ for your cast.")} />
         </div>
 
         <div className="rail-section">
-          <div className="label">Camera move{moveName ? ` · ${moveName}` : ''}</div>
+          <div className="label">{tr("Camera move")}{moveName ? ` · ${moveName}` : ''}</div>
           <div className="chip-row">
-            {CAMERA_MOVES.map((m) => <button key={m.id} type="button" className={`chip ${scene.move === m.id ? 'on' : ''}`} onClick={() => applyMove(m.id)} title={`Fill the keys from key 1: ${m.name.toLowerCase()}`}>{m.name}</button>)}
-            {scene.move === 'custom' && <span className="chip on" title="The keys were edited by hand">Custom</span>}
+            {CAMERA_MOVES.map((m) => <button key={m.id} type="button" className={`chip ${scene.move === m.id ? 'on' : ''}`} onClick={() => applyMove(m.id)} title={tr("Fill the keys from key 1: {0}", { 0: m.name.toLowerCase() })}>{tr(m.name)}</button>)}
+            {scene.move === 'custom' && <span className="chip on" title={tr("The keys were edited by hand")}>{tr("Custom")}</span>}
           </div>
         </div>
 
         <div className="rail-section">
-          <div className="label">Camera keys · {scene.keys.length}</div>
-          <div className="stage-keystrip" role="listbox" aria-label="camera keys">
+          <div className="label">{tr("Camera keys · ")}{scene.keys.length}</div>
+          <div className="stage-keystrip" role="listbox" aria-label={tr("camera keys")}>
             {scene.keys.map((_, i) => (
-              <button key={i} type="button" role="option" aria-selected={key === i} className={`stage-keycard ${key === i ? 'on' : ''}`} onClick={() => pickKey(i)} title={`Go to ${keyName(i).toLowerCase()} and look through it`}>
+              <button key={i} type="button" role="option" aria-selected={key === i} className={`stage-keycard ${key === i ? 'on' : ''}`} onClick={() => pickKey(i)} title={tr("Go to {0} and look through it", { 0: keyName(i).toLowerCase() })}>
                 <span className="stage-diamond" aria-hidden />
                 <b>{keyName(i)}</b>
                 <small className="mono">{secs(times[i])}</small>
@@ -557,38 +558,38 @@ export default function StagePage() {
             ))}
           </div>
           <div className="chip-row">
-            <button type="button" className="btn sm" onClick={addKeyAtPlayhead} disabled={scene.keys.length >= MAX_KEYS} title="A new key at the playhead, holding the Camera view as it is now (K)"><Icon name="plus" size={13} />Add key at playhead</button>
-            <button type="button" className={`btn sm ${framed && key !== null ? 'accent' : ''}`} onClick={setKeyFromView} disabled={key === null} title={key === null ? 'Pick a key first' : `Store the Camera view into ${keyName(key).toLowerCase()}`}><Icon name="camera" size={13} />Set key from this view</button>
-            <button type="button" className="btn sm ghost" onClick={() => key !== null && removeKey(key)} disabled={key === null || scene.keys.length <= 2} title="Delete the selected key (Delete)"><Icon name="trash" size={13} />Delete key</button>
+            <button type="button" className="btn sm" onClick={addKeyAtPlayhead} disabled={scene.keys.length >= MAX_KEYS} title={tr("A new key at the playhead, holding the Camera view as it is now (K)")}><Icon name="plus" size={13} />{tr("Add key at playhead")}</button>
+            <button type="button" className={`btn sm ${framed && key !== null ? 'accent' : ''}`} onClick={setKeyFromView} disabled={key === null} title={key === null ? tr('Pick a key first') : tr("Store the Camera view into {0}", { 0: keyName(key).toLowerCase() })}><Icon name="camera" size={13} />{tr("Set key from this view")}</button>
+            <button type="button" className="btn sm ghost" onClick={() => key !== null && removeKey(key)} disabled={key === null || scene.keys.length <= 2} title={tr("Delete the selected key (Delete)")}><Icon name="trash" size={13} />{tr("Delete key")}</button>
           </div>
-          <div className="dim stage-hint">Pick a key, frame the shot in the Camera view, then Set key from this view.</div>
-          <div className="dim stage-hint mono">K add key · Delete remove · [ ] previous and next key</div>
+          <div className="dim stage-hint">{tr("Pick a key, frame the shot in the Camera view, then Set key from this view.")}</div>
+          <div className="dim stage-hint mono">{tr("K add key · Delete remove · [ ] previous and next key")}</div>
           <label className="stage-slider">
-            <span className="dim">Lens</span>
-            <input type="range" min={LENS_MIN} max={LENS_MAX} step={1} value={scene.lens} onChange={(e) => setScene({ ...scene, lens: Number(e.target.value) })} aria-label="focal length" />
-            <span className="mono">{scene.lens}mm</span>
+            <span className="dim">{tr("Lens")}</span>
+            <input type="range" min={LENS_MIN} max={LENS_MAX} step={1} value={scene.lens} onChange={(e) => setScene({ ...scene, lens: Number(e.target.value) })} aria-label={tr("focal length")} />
+            <span className="mono">{scene.lens}{tr("mm")}</span>
           </label>
           <div className="chip-row">
-            <ChipMenu icon="clock" value={scene.seconds} onChange={(v) => setScene({ ...scene, seconds: v })} title="Length" options={STAGE_SECONDS.map((d) => ({ value: d as number, label: `${d}s`, note: `${stageFrames(d)} frames` }))} />
-            <ChipMenu icon="aspect" value={scene.aspect} onChange={(v: StageAspect) => { setScene({ ...scene, aspect: v }); }} title="Aspect" options={(['16:9', '9:16', '1:1'] as StageAspect[]).map((a) => ({ value: a, label: a }))} />
-            <span className="chip" style={{ gap: 10 }} title="Start and land the move gently"><Icon name="bolt" size={14} />Ease <Switch on={scene.ease === 'smooth'} onChange={(v) => setScene({ ...scene, ease: v ? 'smooth' : 'linear' })} label="ease the move" /></span>
+            <ChipMenu icon="clock" value={scene.seconds} onChange={(v) => setScene({ ...scene, seconds: v })} title={tr("Length")} options={STAGE_SECONDS.map((d) => ({ value: d as number, label: `${d}s`, note: `${stageFrames(d)} frames` }))} />
+            <ChipMenu icon="aspect" value={scene.aspect} onChange={(v: StageAspect) => { setScene({ ...scene, aspect: v }); }} title={tr("Aspect")} options={(['16:9', '9:16', '1:1'] as StageAspect[]).map((a) => ({ value: a, label: a }))} />
+            <span className="chip" style={{ gap: 10 }} title={tr("Start and land the move gently")}><Icon name="bolt" size={14} />{tr("Ease ")}<Switch on={scene.ease === 'smooth'} onChange={(v) => setScene({ ...scene, ease: v ? 'smooth' : 'linear' })} label={tr("ease the move")} /></span>
           </div>
         </div>
 
         <div className="rail-section">
-          <div className="label">Props · {scene.props.length}</div>
+          <div className="label">{tr("Props · ")}{scene.props.length}</div>
           <div className="chip-row">
-            {ADD.map((a) => <button key={a.type} type="button" className="chip" onClick={() => addProp(a.type)}><Icon name={a.icon} size={13} />{PROP_DEFAULTS[a.type].label}</button>)}
-            <button type="button" className="chip" onClick={() => glbInput.current?.click()} title="A .glb model, shown in the set and drawn into the clay"><Icon name="plus" size={13} />Model</button>
+            {ADD.map((a) => <button key={a.type} type="button" className="chip" onClick={() => addProp(a.type)}><Icon name={a.icon} size={13} />{tr(PROP_DEFAULTS[a.type].label)}</button>)}
+            <button type="button" className="chip" onClick={() => glbInput.current?.click()} title={tr("A .glb model, shown in the set and drawn into the clay")}><Icon name="plus" size={13} />{tr("Model")}</button>
             <input ref={glbInput} type="file" accept=".glb,model/gltf-binary" hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) void addGlb(f); e.target.value = ''; }} />
-            <ChipMenu icon="cube" value={0} title="From your 3D library" onChange={(id: number) => { const tk = models.find((x) => x.id === id); if (tk) addModel(tk); }}
+            <ChipMenu icon="cube" value={0} title={tr("From your 3D library")} onChange={(id: number) => { const tk = models.find((x) => x.id === id); if (tk) addModel(tk); }}
               options={[{ value: 0, label: '3D library', disabled: true, note: models.length ? `${models.length} model${models.length === 1 ? '' : 's'}` : 'none yet: Make 3D on a still' },
                 ...models.map((x) => ({ value: x.id, label: modelName(x), note: `take ${x.id}` }))]} />
           </div>
           <div className="stage-props">
             {scene.props.map((p) => (
               <button key={p.id} type="button" className={`stage-prop ${p.id === picked ? 'on' : ''}`} onClick={() => setPicked(p.id === picked ? null : p.id)}>
-                <span>{p.label ?? p.type}</span><small className="dim">{p.to ? 'moves' : `${p.size[1]}m`}</small>
+                <span>{p.label ?? tr(p.type)}</span><small className="dim">{p.to ? tr('moves') : `${p.size[1]}m`}</small>
               </button>
             ))}
           </div>
@@ -596,53 +597,53 @@ export default function StagePage() {
         </div>
 
         <div className="rail-section">
-          <div className="label">Look frame</div>
+          <div className="label">{tr("Look frame")}</div>
           <input ref={lookInput} type="file" accept="image/*" hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) void lookFromFile(f); e.target.value = ''; }} />
           {look ? (
             <div className={`ref stage-look ${lookDrop.over ? 'drag' : ''}`} {...lookDrop.props} style={{ aspectRatio: `${ls.w} / ${ls.h}` }}>
-              <img src={inputUrl(look.token)} alt="the look frame" />
-              <span className="role start">look{look.take ? ` · take ${look.take}` : ''}</span>
-              <button type="button" className="x" onClick={clearLook} aria-label="remove the look frame" title="Remove"><Icon name="x" size={12} /></button>
+              <img src={inputUrl(look.token)} alt={tr("the look frame")} />
+              <span className="role start">{tr("look")}{look.take ? tr(" · take {0}", { 0: look.take }) : ''}</span>
+              <button type="button" className="x" onClick={clearLook} aria-label={tr("remove the look frame")} title={tr("Remove")}><Icon name="x" size={12} /></button>
             </div>
           ) : (
             <div className={`well stage-lookwell ${lookDrop.over ? 'drag' : ''}`} {...lookDrop.props} role="button" tabIndex={0}
               onClick={() => lookInput.current?.click()} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); lookInput.current?.click(); } }}>
               <div className="well-icons"><span><Icon name="image" /></span></div>
-              <div style={{ fontWeight: 600, color: 'var(--text)' }}>{waitLook.length ? 'Making the look frame...' : 'Add a look frame'}</div>
-              <div style={{ fontSize: 12, marginTop: 2 }}>Click to pick a picture or drop one here. It sets the palette, light and materials; the blocking sets where things are.</div>
+              <div style={{ fontWeight: 600, color: 'var(--text)' }}>{waitLook.length ? tr('Making the look frame...') : tr('Add a look frame')}</div>
+              <div style={{ fontSize: 12, marginTop: 2 }}>{tr("Click to pick a picture or drop one here. It sets the palette, light and materials; the blocking sets where things are.")}</div>
             </div>
           )}
-          {look?.note && <div className="dim stage-hint">{look.note}</div>}
-          {lookStale && <div className="dim" style={{ fontSize: 12, color: 'var(--accent-hi)' }}>The set or the first key changed since this look frame. Where they disagree, the shot follows the look frame.</div>}
+          {look?.note && <div className="dim stage-hint">{tr(look.note)}</div>}
+          {lookStale && <div className="dim" style={{ fontSize: 12, color: 'var(--accent-hi)' }}>{tr("The set or the first key changed since this look frame. Where they disagree, the shot follows the look frame.")}</div>}
           <div className="chip-row">
-            {look && <button type="button" className="btn sm" onClick={() => lookInput.current?.click()} disabled={!!busy}><Icon name="image" size={13} />Replace</button>}
-            <button type="button" className={`btn sm ${library ? 'on' : ''}`} onClick={() => setLibrary(!library)} aria-expanded={library}><Icon name="grid" size={13} />From your library</button>
+            {look && <button type="button" className="btn sm" onClick={() => lookInput.current?.click()} disabled={!!busy}><Icon name="image" size={13} />{tr("Replace")}</button>}
+            <button type="button" className={`btn sm ${library ? 'on' : ''}`} onClick={() => setLibrary(!library)} aria-expanded={library}><Icon name="grid" size={13} />{tr("From your library")}</button>
           </div>
           {library && (stills.length ? (
-            <div className="src-strip" aria-label="your stills">
+            <div className="src-strip" aria-label={tr("your stills")}>
               {stills.map((x) => (
-                <button key={x.id} type="button" title={`Use take ${x.id} as the look frame`} disabled={!!busy} onClick={() => void lookFromTake(x)}>
-                  <img src={posterUrl(x.id)} alt="" loading="lazy" />
+                <button key={x.id} type="button" title={tr("Use take {0} as the look frame", { 0: x.id })} disabled={!!busy} onClick={() => void lookFromTake(x)}>
+                  <img src={posterUrl(x.id)} alt={""} loading="lazy" />
                 </button>
               ))}
             </div>
-          ) : <div className="dim stage-hint">No stills yet. Make one in Image, or Make look frame below.</div>)}
+          ) : <div className="dim stage-hint">{tr("No stills yet. Make one in Image, or Make look frame below.")}</div>)}
           <div className="chip-row">
-            <ChipMenu icon="image" value={lookEngine} onChange={setLookEngine} title="Look frame from" options={[
+            <ChipMenu icon="image" value={lookEngine} onChange={setLookEngine} title={tr("Look frame from")} options={[
               { value: 'depth', label: 'Depth lock', note: 'Z-Image Turbo reads the depth pass' },
               { value: 'edit', label: 'Clay edit', note: 'Qwen-Image-Edit repaints the clay frame, cast pictures included' },
             ]} />
             <Stepper value={lookCount} min={1} max={4} onChange={setLookCount} fmt={(v) => `${v}/4`} />
-            <button type="button" className="btn sm" disabled={!!busy || waitLook.length > 0} onClick={() => void makeLook()}><Icon name="sparkle" size={13} />Make look frame</button>
+            <button type="button" className="btn sm" disabled={!!busy || waitLook.length > 0} onClick={() => void makeLook()}><Icon name="sparkle" size={13} />{tr("Make look frame")}</button>
           </div>
         </div>
 
         <div className="chip-row">
           <Stepper value={count} min={1} max={4} onChange={setCount} fmt={(v) => `${v}/4`} />
-          <span className="dim" style={{ fontSize: 12 }}>{size.w}x{size.h} · {frames} frames at 24 fps</span>
+          <span className="dim" style={{ fontSize: 12 }}>{size.w}x{size.h} · {frames} {tr("frames at 24 fps")}</span>
         </div>
         <button type="button" className="generate" style={{ marginTop: 'auto' }} disabled={!!busy} onClick={() => void go()}>
-          <span>{busy ?? (look ? 'Render shot' : 'Make the look, then render')}</span>
+          <span>{tr(busy) ?? (look ? tr('Render shot') : tr('Make the look, then render'))}</span>
           <span className="cost">{res}{est ? ` · ${fmtSeconds(est * count)}` : ''}</span>
         </button>
       </aside>
@@ -650,51 +651,51 @@ export default function StagePage() {
       <section className="canvas">
         <div className="canvas-head">
           <div className="tabs" style={{ borderBottom: 0 }}>
-            <button type="button" className={mode === 'set' ? 'on' : ''} onClick={() => setMode('set')}>Set</button>
-            <button type="button" className={mode === 'shot' ? 'on' : ''} onClick={() => setMode('shot')}>Camera</button>
+            <button type="button" className={mode === 'set' ? 'on' : ''} onClick={() => setMode('set')}>{tr("Set")}</button>
+            <button type="button" className={mode === 'shot' ? 'on' : ''} onClick={() => setMode('shot')}>{tr("Camera")}</button>
           </div>
           <span className="dim" style={{ fontSize: 12 }}>
-            {mode === 'set' ? 'Drag a prop to move it. Drag empty ground to orbit, right-drag to pan, scroll to zoom.'
-              : framed ? (key !== null ? `Framed by hand. Set key from this view to store it in ${keyName(key).toLowerCase()}, or Add key at playhead.` : 'Framed by hand. Add key at playhead to keep it.')
-              : `Through the lens at ${secs(t)}${key !== null ? `, on ${keyName(key).toLowerCase()}` : ''}. Drag to swing, right-drag to slide, scroll to move in. Props move in the Set view.`}
+            {mode === 'set' ? tr('Drag a prop to move it. Drag empty ground to orbit, right-drag to pan, scroll to zoom.')
+              : framed ? (key !== null ? tr("Framed by hand. Set key from this view to store it in {0}, or Add key at playhead.", { 0: keyName(key).toLowerCase() }) : tr('Framed by hand. Add key at playhead to keep it.'))
+              : tr("Through the lens at {0}{1}. Drag to swing, right-drag to slide, scroll to move in. Props move in the Set view.", { 0: secs(t), 1: key !== null ? tr(", on {0}", { 0: keyName(key).toLowerCase() }) : '' })}
           </span>
-          {framed && <button type="button" className="btn sm ghost" onClick={() => view.current?.resetFrame()} title="Drop the hand framing and follow the camera path">Back to the path</button>}
+          {framed && <button type="button" className="btn sm ghost" onClick={() => view.current?.resetFrame()} title={tr("Drop the hand framing and follow the camera path")}>{tr("Back to the path")}</button>}
         </div>
         <div className="canvas-body stage-body">
           <div className="stage-viewport" ref={host} />
           <div className="stage-timeline">
-            <button type="button" className="icon-btn" onClick={() => setPlaying(!playing)} aria-label={playing ? 'pause' : 'play'}><Icon name={playing ? 'stop' : 'video'} size={14} /></button>
+            <button type="button" className="icon-btn" onClick={() => setPlaying(!playing)} aria-label={playing ? tr('pause') : tr('play')}><Icon name={playing ? 'stop' : 'video'} size={14} /></button>
             <div className="stage-scrub">
               <div className="stage-lane" ref={lane}>
                 {moving && (() => {
                   const [a, b] = propSpan(moving);
                   return (
-                    <div className="stage-span" style={{ left: `${a * 100}%`, width: `${(b - a) * 100}%` }} title={`${moving.label ?? moving.type} moves from ${secs(a)} to ${secs(b)}`}>
-                      <span className="stage-span-end" onPointerDown={(e) => dragSpan(e, moving.id, 0)} title="Drag: when the move starts" />
-                      <span className="stage-span-name">{moving.label ?? moving.type}</span>
-                      <span className="stage-span-end" onPointerDown={(e) => dragSpan(e, moving.id, 1)} title="Drag: when the move ends" />
+                    <div className="stage-span" style={{ left: `${a * 100}%`, width: `${(b - a) * 100}%` }} title={tr("{0} moves from {1} to {2}", { 0: moving.label ?? moving.type, 1: secs(a), 2: secs(b) })}>
+                      <span className="stage-span-end" onPointerDown={(e) => dragSpan(e, moving.id, 0)} title={tr("Drag: when the move starts")} />
+                      <span className="stage-span-name">{tr(moving.label) ?? moving.type}</span>
+                      <span className="stage-span-end" onPointerDown={(e) => dragSpan(e, moving.id, 1)} title={tr("Drag: when the move ends")} />
                     </div>
                   );
                 })()}
                 {times.map((kt, i) => (
                   <button key={i} type="button" className={`stage-tick ${key === i ? 'on' : ''} ${i === 0 || i === scene.keys.length - 1 ? 'pinned' : ''}`} style={{ left: `${kt * 100}%` }}
-                    onPointerDown={(e) => dragKey(e, i)} aria-label={`${keyName(i)} at ${secs(kt)}`}
-                    title={`${keyName(i)} at ${secs(kt)}${i === 0 || i === scene.keys.length - 1 ? '' : '. Drag to retime'}`} />
+                    onPointerDown={(e) => dragKey(e, i)} aria-label={tr("{0} at {1}", { 0: keyName(i), 1: secs(kt) })}
+                    title={tr("{0} at {1}{2}", { 0: keyName(i), 1: secs(kt), 2: i === 0 || i === scene.keys.length - 1 ? '' : tr('. Drag to retime') })} />
                 ))}
               </div>
-              <input type="range" min={0} max={frames - 1} step={1} value={Math.round(t * (frames - 1))} onChange={(e) => scrub(Number(e.target.value) / (frames - 1))} aria-label="shot time" />
+              <input type="range" min={0} max={frames - 1} step={1} value={Math.round(t * (frames - 1))} onChange={(e) => scrub(Number(e.target.value) / (frames - 1))} aria-label={tr("shot time")} />
             </div>
             <span className="mono dim" style={{ fontSize: 12, minWidth: 76, textAlign: 'right' }}>{secs(t)} / {scene.seconds}s</span>
           </div>
           {takes.length === 0 ? (
             <div className="steps3" style={{ marginTop: 22 }}>
-              <div><span className="label">01</span><b>Block the set</b><span className="dim">Drop in boxes, pillars, figures and walls. Give the camera keys along the timeline and a lens.</span></div>
-              <div><span className="label">02</span><b>Make a look frame</b><span className="dim">One picture of the first frame, drawn on the set's own depth. It sets the look.</span></div>
-              <div><span className="label">03</span><b>Render</b><span className="dim">The camera move and the layout come from the blocking, the light and materials from the look.</span></div>
+              <div><span className="label">01</span><b>{tr("Block the set")}</b><span className="dim">{tr("Drop in boxes, pillars, figures and walls. Give the camera keys along the timeline and a lens.")}</span></div>
+              <div><span className="label">02</span><b>{tr("Make a look frame")}</b><span className="dim">{tr("One picture of the first frame, drawn on the set's own depth. It sets the look.")}</span></div>
+              <div><span className="label">03</span><b>{tr("Render")}</b><span className="dim">{tr("The camera move and the layout come from the blocking, the light and materials from the look.")}</span></div>
             </div>
           ) : (
             <>
-              <div className="label" style={{ margin: '22px 0 10px' }}>Takes</div>
+              <div className="label" style={{ margin: '22px 0 10px' }}>{tr("Takes")}</div>
               <div className="grid">
                 {takes.map((x) => (
                   <MediaCard key={x.id} take={x} onOpen={() => setViewing(x.id)} pendingLabel={settingsOf(x).app === 'stage' && !x.prompt_id && x.kind === 'video' ? 'Waiting for the look frame' : undefined} actions={<>
@@ -721,16 +722,16 @@ function PropEditor({ prop: p, seconds, onPatch, onRemove, onSeek }: { prop: Sta
   const dim = (i: 0 | 1 | 2, v: number) => { const size = [...p.size] as Vec3; size[i] = v; onPatch({ size }); };
   const row = (label: string, value: number, min: number, max: number, stepv: number, set: (v: number) => void, unit = 'm') => (
     <label className="stage-slider">
-      <span className="dim">{label}</span>
-      <input type="range" min={min} max={max} step={stepv} value={value} onChange={(e) => set(Number(e.target.value))} aria-label={label} />
+      <span className="dim">{tr(label)}</span>
+      <input type="range" min={min} max={max} step={stepv} value={value} onChange={(e) => set(Number(e.target.value))} aria-label={tr(label)} />
       <span className="mono">{value}{unit}</span>
     </label>
   );
   return (
     <div className="stage-editor">
       <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-        <input className="stage-name" value={p.label ?? ''} placeholder={p.type} maxLength={40} onChange={(e) => onPatch({ label: e.target.value })} aria-label="prop name" />
-        <button type="button" className="icon-btn" title="Remove the prop (Delete)" onClick={onRemove}><Icon name="trash" size={13} /></button>
+        <input className="stage-name" value={p.label ?? ''} placeholder={p.type} maxLength={40} onChange={(e) => onPatch({ label: e.target.value })} aria-label={tr("prop name")} />
+        <button type="button" className="icon-btn" title={tr("Remove the prop (Delete)")} onClick={onRemove}><Icon name="trash" size={13} /></button>
       </div>
       {row('Width', p.size[0], 0.1, big, 0.05, (v) => dim(0, v))}
       {row('Height', p.size[1], 0.1, 20, 0.05, (v) => dim(1, v))}
@@ -738,14 +739,14 @@ function PropEditor({ prop: p, seconds, onPatch, onRemove, onSeek }: { prop: Sta
       {row('Turn', p.rot, -180, 180, 1, (v) => onPatch({ rot: v }), '°')}
       {row('Lift', p.pos[1], 0, 10, 0.05, (v) => onPatch({ pos: [p.pos[0], v, p.pos[2]], ...(p.to ? { to: [p.to[0], v, p.to[2]] as Vec3 } : {}) }))}
       <div className="era-grade">
-        <span className="dim">Moves during the shot</span>
-        <Switch on={!!p.to} onChange={(v) => onPatch(v ? { to: [Math.round((p.pos[0] + 1.5) * 100) / 100, p.pos[1], p.pos[2]] } : { to: undefined, span: undefined })} label="moves during the shot" />
+        <span className="dim">{tr("Moves during the shot")}</span>
+        <Switch on={!!p.to} onChange={(v) => onPatch(v ? { to: [Math.round((p.pos[0] + 1.5) * 100) / 100, p.pos[1], p.pos[2]] } : { to: undefined, span: undefined })} label={tr("moves during the shot")} />
       </div>
       {p.to && <>
-        <div className="dim stage-hint">Moves from {(a * seconds).toFixed(1)}s to {(b * seconds).toFixed(1)}s. Drag the ends of its bar on the timeline to change when. Drag the prop at the start to place where it starts, at the end to place where it ends.</div>
+        <div className="dim stage-hint">{tr("Moves from ")}{(a * seconds).toFixed(1)}{tr("s to ")}{(b * seconds).toFixed(1)}{tr("s. Drag the ends of its bar on the timeline to change when. Drag the prop at the start to place where it starts, at the end to place where it ends.")}</div>
         <div className="chip-row">
-          <button type="button" className="btn sm" onClick={() => onSeek(a)}>Go to start</button>
-          <button type="button" className="btn sm" onClick={() => onSeek(b)}>Go to end</button>
+          <button type="button" className="btn sm" onClick={() => onSeek(a)}>{tr("Go to start")}</button>
+          <button type="button" className="btn sm" onClick={() => onSeek(b)}>{tr("Go to end")}</button>
         </div>
       </>}
     </div>

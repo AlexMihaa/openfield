@@ -26,7 +26,8 @@
     "mcp:smoke": "tsx mcp/smoke.ts",
     "mcp:check": "tsx mcp/bodies.check.ts",
     "shotlist:check": "tsx scripts/check-shotlist.ts",
-    "workflows": "tsx scripts/export-workflows.ts"
+    "workflows": "tsx scripts/export-workflows.ts",
+    "test:i18n": "tsx scripts/test-i18n.ts"
   },
   "dependencies": {
     "@comfyorg/sdk": "^0.5.0",

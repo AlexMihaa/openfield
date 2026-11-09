@@ -3,6 +3,7 @@
  * pick one of your takes, or drop a file. Either way the media is uploaded as
  * an input and comes back as a token plus the facts the page sizes itself by.
  */
+import { tr } from './i18n';
 import { useEffect, useState } from 'react';
 import { mediaUrl, posterUrl, takeAsInput, uploadFile, type Take } from './api';
 import { useDropZone } from './drop';
@@ -75,9 +76,9 @@ export function fileKind(f: File): SourceKind | null {
 /** Upload a dropped or picked file as a source, if it is one of `accept`. Toasts and returns null otherwise. */
 export async function loadFile(f: File, accept: SourceKind[]): Promise<Source | null> {
   const kind = fileKind(f);
-  if (!kind || !accept.includes(kind)) { toast(`Drop ${accept.join(' or ')}`, true); return null; }
-  if (f.size > 45e6) { toast('That file is over 45 MB. Trim it first.', true); return null; }
-  try { return await sourceFromFile(f, kind); } catch (e) { toast(e instanceof Error ? e.message : 'upload failed', true); return null; }
+  if (!kind || !accept.includes(kind)) { toast(tr("Drop {0}", { 0: accept.join(' or ') }), true); return null; }
+  if (f.size > 45e6) { toast(tr('That file is over 45 MB. Trim it first.'), true); return null; }
+  try { return await sourceFromFile(f, kind); } catch (e) { toast(e instanceof Error ? e.message : tr('upload failed'), true); return null; }
 }
 
 /** Load ?take=<id> once into a source, then drop the param. */
@@ -90,7 +91,7 @@ export function useTakeParam(id: string | null, onSource: (s: Source) => void) {
     const t = takes.find((x) => x.id === Number(id));
     if (!t) return;
     setLoaded(id);
-    void sourceFromTake(t).then(onSource).catch((e) => toast(e instanceof Error ? e.message : 'could not load the take', true));
+    void sourceFromTake(t).then(onSource).catch((e) => toast(e instanceof Error ? e.message : tr('could not load the take'), true));
   }, [id, takes, loaded]);
 }
 
@@ -112,7 +113,7 @@ export function SourceSlot(p: {
 
   const take = async (t: Take) => {
     setBusy(true);
-    try { p.onChange(await sourceFromTake(t)); } catch (e) { toast(e instanceof Error ? e.message : 'failed', true); } finally { setBusy(false); }
+    try { p.onChange(await sourceFromTake(t)); } catch (e) { toast(e instanceof Error ? e.message : tr('failed'), true); } finally { setBusy(false); }
   };
   const file = async (f: File) => {
     setBusy(true);
@@ -123,7 +124,7 @@ export function SourceSlot(p: {
 
   return (
     <div className="rail-section">
-      <div className="label">{p.label}</div>
+      <div className="label">{tr(p.label)}</div>
       {v ? (
         v.kind === 'audio' ? (
           <div className={`ref ${replace.over ? 'drag' : ''}`} {...replace.props} style={{ aspectRatio: 'auto', padding: '12px 12px 12px 14px', display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -132,23 +133,23 @@ export function SourceSlot(p: {
               <div style={{ fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{v.name}</div>
               <div className="dim mono" style={{ fontSize: 11.5 }}>{v.seconds.toFixed(1)}s</div>
             </div>
-            <button type="button" className="x" style={{ position: 'static' }} onClick={() => p.onChange(null)} aria-label="remove"><Icon name="x" size={12} /></button>
+            <button type="button" className="x" style={{ position: 'static' }} onClick={() => p.onChange(null)} aria-label={tr("remove")}><Icon name="x" size={12} /></button>
           </div>
         ) : (
           <div className={`ref ${replace.over ? 'drag' : ''}`} {...replace.props} style={{ aspectRatio: `${v.w || 16} / ${v.h || 9}` }}>
-            {v.kind === 'image' ? <img src={v.url} alt="" /> : <video src={v.url} muted loop autoPlay playsInline />}
+            {v.kind === 'image' ? <img src={v.url} alt={""} /> : <video src={v.url} muted loop autoPlay playsInline />}
             <span className="role">{v.kind === 'image' ? v.name : `${v.seconds.toFixed(1)}s · ${v.name}`}</span>
-            <button type="button" className="x" onClick={() => p.onChange(null)} aria-label="remove"><Icon name="x" size={12} /></button>
+            <button type="button" className="x" onClick={() => p.onChange(null)} aria-label={tr("remove")}><Icon name="x" size={12} /></button>
           </div>
         )
       ) : (
         <>
-          <DropWell accept={p.accept.map((k) => `${k}/*`).join(',')} onFile={(f) => void file(f)} icon={p.accept[0]} title={busy ? 'Loading...' : p.title} sub={p.sub} />
+          <DropWell accept={p.accept.map((k) => `${k}/*`).join(',')} onFile={(f) => void file(f)} icon={p.accept[0]} title={busy ? tr('Loading...') : p.title} sub={p.sub} />
           {takes.length > 0 && !p.accept.every((k) => k === 'audio') && (
-            <div className="src-strip" aria-label="your takes">
+            <div className="src-strip" aria-label={tr("your takes")}>
               {takes.map((t) => (
-                <button key={t.id} type="button" title={`Use take ${t.id}`} disabled={busy} onClick={() => void take(t)}>
-                  <img src={posterUrl(t.id)} alt="" loading="lazy" />
+                <button key={t.id} type="button" title={tr("Use take {0}", { 0: t.id })} disabled={busy} onClick={() => void take(t)}>
+                  <img src={posterUrl(t.id)} alt={""} loading="lazy" />
                   {!isImage(t) && <span><Icon name="video" size={11} /></span>}
                 </button>
               ))}

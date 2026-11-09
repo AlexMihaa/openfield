@@ -1,4 +1,5 @@
 /** Image create: results canvas + floating bottom composer. */
+import { tr } from '../i18n';
 import { useEffect, useRef, useState } from 'react';
 import { api, inputUrl, posterUrl, uploadFile } from '../api';
 import { usePageDrop } from '../drop';
@@ -35,18 +36,18 @@ export default function ImagePage() {
       try {
         const token = await uploadFile(f);
         setRefs((cur) => [...cur, { token, name: f.name }].slice(0, MAX_REFS));
-      } catch (e) { toast(e instanceof Error ? e.message : 'upload failed', true); }
+      } catch (e) { toast(e instanceof Error ? e.message : tr('upload failed'), true); }
     }
   }
 
-  usePageDrop(refsOn ? 'Drop images to use as references' : 'Drop an image to animate it', async (files) => {
+  usePageDrop(refsOn ? tr('Drop images to use as references') : tr('Drop an image to animate it'), async (files) => {
     if (refsOn) { void addRefs(files); return; }
     const f = files.find((x) => x.type.startsWith('image/'));
-    if (!f) { toast('Drop an image to animate it', true); return; }
+    if (!f) { toast(tr('Drop an image to animate it'), true); return; }
     try {
       setHandoff({ refs: [{ token: await uploadFile(f), role: 'start', kind: 'image', name: f.name }] });
       navigate('/video');
-    } catch (e) { toast(e instanceof Error ? e.message : 'upload failed', true); }
+    } catch (e) { toast(e instanceof Error ? e.message : tr('upload failed'), true); }
   });
   const [viewing, setViewing] = useState<number | null>(null);
 
@@ -65,9 +66,9 @@ export default function ImagePage() {
         ...(loras.length ? { loras } : {}),
         ...(refsOn && refs.length ? { refImages: refs.map((r) => r.token) } : {}),
       });
-      toast(`Queued ${r.takeIds.length} image${r.takeIds.length > 1 ? 's' : ''}`);
+      toast(tr("Queued images: {0}", { 0: r.takeIds.length }));
     } catch (e) {
-      toast(e instanceof Error ? e.message : 'failed', true);
+      toast(e instanceof Error ? e.message : tr('failed'), true);
     } finally {
       setBusy(false);
     }
@@ -88,8 +89,8 @@ export default function ImagePage() {
             <div className="fan">
               {['ink-bloom', 'golden', 'neon-rain', 'bloom'].map((id) => <div key={id}><Clip src={presetClip(id)} className="" /></div>)}
             </div>
-            <div className="display" style={{ fontSize: 'clamp(38px,5.4vw,72px)' }}>Make an image with <span className="hl">{model.label}</span></div>
-            <p className="dim" style={{ marginTop: 14 }}>Open weights, on your own GPU. Describe it below.</p>
+            <div className="display" style={{ fontSize: 'clamp(38px,5.4vw,72px)' }}>{tr("Make an image with ")}<span className="hl">{tr(model.label)}</span></div>
+            <p className="dim" style={{ marginTop: 14 }}>{tr("Open weights, on your own GPU. Describe it below.")}</p>
           </div>
         ) : (
           <div className="grid dense" style={{ maxWidth: 1500, margin: '0 auto' }}>
@@ -110,28 +111,28 @@ export default function ImagePage() {
             {refsOn && refs.length > 0 && (
               <div className="chip-row" style={{ marginBottom: 6 }}>
                 {refs.map((r, i) => (
-                  <span key={r.token} className="ref-thumb" title={`Reference ${i + 1}: ${r.name}. Say "the person in image ${i + 1}" to point at it.`}>
-                    <img src={inputUrl(r.token)} alt="" />
+                  <span key={r.token} className="ref-thumb" title={tr("Reference {0}: {1}. Say \"the person in image {2}\" to point at it.", { 0: i + 1, 1: r.name, 2: i + 1 })}>
+                    <img src={inputUrl(r.token)} alt={""} />
                     <small>{i + 1}</small>
-                    <button type="button" onClick={() => setRefs((c) => c.filter((_, j) => j !== i))} aria-label="remove"><Icon name="x" size={11} /></button>
+                    <button type="button" onClick={() => setRefs((c) => c.filter((_, j) => j !== i))} aria-label={tr("remove")}><Icon name="x" size={11} /></button>
                   </span>
                 ))}
               </div>
             )}
-            <MentionBox value={prompt} onChange={setPrompt} placeholder="Describe the image you want. Type @ to bring in your cast." dir="up"
+            <MentionBox value={prompt} onChange={setPrompt} placeholder={tr("Describe the image you want. Type @ to bring in your cast.")} dir="up"
               rows={2} onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); if (!busy) void go(); } }} />
             <div className="chip-row">
-              <ChipMenu icon="sparkle" value={model.id} onChange={(v) => setParams({ model: v === 'qwen' ? null : v })} title="Model"
+              <ChipMenu icon="sparkle" value={model.id} onChange={(v) => setParams({ model: v === 'qwen' ? null : v })} title={tr("Model")}
                 options={IMAGE_MODELS.map((m) => ({ value: m.id, label: m.label, note: m.warn ?? m.license }))} />
-              <ChipMenu icon="aspect" value={aspect} onChange={setAspect} title="Aspect" options={ASPECTS.map((a) => ({ value: a.id, label: a.id }))} />
-              <ChipMenu icon="res" value={quality} onChange={setQuality} title="Quality" options={IMAGE_QUALITY.map((q) => ({ value: q.id, label: q.label, note: q.note }))} />
-              <ChipMenu icon="grid" value={res} onChange={setRes} title="Resolution" options={IMAGE_RES.map((r) => ({ value: r.id, label: r.id, note: `${r.mp} MP` }))} />
+              <ChipMenu icon="aspect" value={aspect} onChange={setAspect} title={tr("Aspect")} options={ASPECTS.map((a) => ({ value: a.id, label: a.id }))} />
+              <ChipMenu icon="res" value={quality} onChange={setQuality} title={tr("Quality")} options={IMAGE_QUALITY.map((q) => ({ value: q.id, label: q.label, note: q.note }))} />
+              <ChipMenu icon="grid" value={res} onChange={setRes} title={tr("Resolution")} options={IMAGE_RES.map((r) => ({ value: r.id, label: r.id, note: `${r.mp} MP` }))} />
               <Stepper value={count} min={1} max={4} onChange={setCount} fmt={(v) => `${v}/4`} />
               {refsOn && (
                 <>
                   <button type="button" className={`chip ${refs.length ? 'on' : ''}`} disabled={refs.length >= MAX_REFS} onClick={() => refInput.current?.click()}
-                    title="Reference pictures: FLUX.2 keeps their faces, clothes and objects in a new photograph. @cast members add theirs too.">
-                    <Icon name="ref" size={14} /><span>{refs.length ? `Refs ${refs.length}` : 'Refs'}</span>
+                    title={tr("Reference pictures: FLUX.2 keeps their faces, clothes and objects in a new photograph. @cast members add theirs too.")}>
+                    <Icon name="ref" size={14} /><span>{refs.length ? tr("Refs {0}", { 0: refs.length }) : tr('Refs')}</span>
                   </button>
                   <input ref={refInput} type="file" accept="image/*" multiple hidden
                     onChange={(e) => { if (e.target.files) void addRefs(Array.from(e.target.files)); e.target.value = ''; }} />
@@ -142,8 +143,7 @@ export default function ImagePage() {
           </div>
           <button type="button" className="gen-tile" disabled={busy || !prompt.trim()} onClick={() => void go()}>
             <Icon name="sparkle" size={18} />
-            Generate
-            <small>{size.w}x{size.h}{est ? <><br />{fmtSeconds(est * count)}</> : null}</small>
+            {tr("Generate")}<small>{size.w}x{size.h}{est ? <><br />{fmtSeconds(est * count)}</> : null}</small>
           </button>
         </div>
       </div>

@@ -4,6 +4,7 @@
  * Coverage, Push in, Next beat, Relight, Expand. Every result is an ordinary
  * still take, so Library, the Viewer and Animate all work on it.
  */
+import { tr } from '../i18n';
 import { useEffect, useRef, useState } from 'react';
 import { api, inputUrl, mediaUrl, takeAsInput, uploadFile, type Take } from '../api';
 import { EDIT_APPS, EXPAND_ASPECTS, RELIGHT_DIRECTIONS, IMAGE_QUALITY, editAppById, editVariants, type EditMode } from '../catalog';
@@ -62,13 +63,13 @@ export default function EditPage() {
   useEffect(() => {
     if (!fromTake || source?.take === fromTake) return;
     let live = true;
-    setBusy('Loading the image...');
+    setBusy(tr('Loading the image...'));
     takeAsInput(fromTake)
       .then(async (token) => {
         const d = await dimsOf(inputUrl(token));
         if (live) { setSource({ token, ...d, take: fromTake }); setMask(null); }
       })
-      .catch((e) => toast(e instanceof Error ? e.message : 'could not load that take', true))
+      .catch((e) => toast(e instanceof Error ? e.message : tr('could not load that take'), true))
       .finally(() => live && setBusy(null));
     return () => { live = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -85,15 +86,15 @@ export default function EditPage() {
   try { planned = editVariants(app.id, { text, chips, direction, count }).length; } catch { planned = 0; }
 
   async function addSource(f: File) {
-    if (!f.type.startsWith('image/')) { toast('Drop an image (PNG, JPEG or WebP)', true); return; }
-    setBusy('Uploading...');
+    if (!f.type.startsWith('image/')) { toast(tr('Drop an image (PNG, JPEG or WebP)'), true); return; }
+    setBusy(tr('Uploading...'));
     try {
       const token = await uploadFile(f);
       setSource({ token, ...(await dimsOf(URL.createObjectURL(f))) });
       setMask(null);
       setParams({ take: null });
     } catch (e) {
-      toast(e instanceof Error ? e.message : 'upload failed', true);
+      toast(e instanceof Error ? e.message : tr('upload failed'), true);
     } finally {
       setBusy(null);
     }
@@ -101,16 +102,16 @@ export default function EditPage() {
 
   async function addRef(f: File) {
     if (!f.type.startsWith('image/')) return;
-    setBusy('Uploading...');
+    setBusy(tr('Uploading...'));
     try { const t = await uploadFile(f); setRefs((r) => [...r, t].slice(0, 2)); } catch (e) { toast(String(e), true); } finally { setBusy(null); }
   }
 
   // A drop anywhere on the page fills the first empty image slot: the image
   // being edited, then (free mode) images 2 and 3. With every slot full it
   // replaces the image being edited.
-  usePageDrop('Drop an image to edit it', (files) => {
+  usePageDrop(tr('Drop an image to edit it'), (files) => {
     const imgs = files.filter((f) => f.type.startsWith('image/'));
-    if (!imgs.length) { toast('Drop an image (PNG, JPEG or WebP)', true); return; }
+    if (!imgs.length) { toast(tr('Drop an image (PNG, JPEG or WebP)'), true); return; }
     const open = app.id === 'free' ? 2 - refs.length : 0;
     void (async () => {
       if (!source) {
@@ -133,7 +134,7 @@ export default function EditPage() {
 
   async function go() {
     if (!source) return;
-    setBusy('Queuing...');
+    setBusy(tr('Queuing...'));
     try {
       const variants = editVariants(app.id, { text, chips, direction, count });
       const ratio = EXPAND_ASPECTS.find((a) => a.id === expandTo)?.ratio ?? 0;
@@ -145,9 +146,9 @@ export default function EditPage() {
         shotName: `${app.id === 'free' ? 'edit' : app.id}_${(text || app.name).slice(0, 30)}`,
       });
       setView('takes');
-      toast(`Queued ${r.takeIds.length} edit${r.takeIds.length > 1 ? 's' : ''}`);
+      toast(tr("Queued edits: {0}", { 0: r.takeIds.length }));
     } catch (e) {
-      toast(e instanceof Error ? e.message : 'failed', true);
+      toast(e instanceof Error ? e.message : tr('failed'), true);
     } finally {
       setBusy(null);
     }
@@ -161,62 +162,62 @@ export default function EditPage() {
     <div className="rail-layout" style={{ gridTemplateColumns: '372px 1fr' }}>
       <aside className="rail">
         <Spill src={presetClip(app.cover)} video />
-        <div className="display" style={{ fontSize: 26 }}>{app.name}</div>
+        <div className="display" style={{ fontSize: 26 }}>{tr(app.name)}</div>
         <div className="edit-apps">
           {EDIT_APPS.map((a) => (
-            <button key={a.id} type="button" className={`edit-app ${a.id === app.id ? 'on' : ''}`} onClick={() => setParams({ app: a.id === 'free' ? null : a.id })} title={a.blurb}>
-              <Icon name={a.icon} size={14} /><span>{a.name}</span>
+            <button key={a.id} type="button" className={`edit-app ${a.id === app.id ? 'on' : ''}`} onClick={() => setParams({ app: a.id === 'free' ? null : a.id })} title={tr(a.blurb)}>
+              <Icon name={a.icon} size={14} /><span>{tr(a.name)}</span>
             </button>
           ))}
-          <button type="button" className="edit-app" title="Cut the subject out: a transparent PNG, or a new background" onClick={() => {
+          <button type="button" className="edit-app" title={tr("Cut the subject out: a transparent PNG, or a new background")} onClick={() => {
             if (source && !source.take) setHandoff({ refs: [{ token: source.token, role: 'start', kind: 'image', name: 'your image' }] });
             navigate(`/cutout${source?.take ? `?take=${source.take}` : ''}`);
-          }}><Icon name="cutout" size={14} /><span>Remove background</span></button>
+          }}><Icon name="cutout" size={14} /><span>{tr("Remove background")}</span></button>
         </div>
-        <div className="dim" style={{ fontSize: 12.5, marginTop: -4 }}>{app.blurb}</div>
+        <div className="dim" style={{ fontSize: 12.5, marginTop: -4 }}>{tr(app.blurb)}</div>
 
         <div className="rail-section">
-          <div className="label">Image</div>
+          <div className="label">{tr("Image")}</div>
           {source ? (
             <div className={`ref ${replaceZone.over ? 'drag' : ''}`} style={{ aspectRatio: `${source.w || 16} / ${source.h || 9}` }} {...replaceZone.props}>
-              <img src={inputUrl(source.token)} alt="" />
-              <span className="role start">{source.take ? `take ${source.take}` : 'your image'}</span>
-              <button type="button" className="x" onClick={() => { setSource(null); setMask(null); setParams({ take: null }); }} aria-label="remove"><Icon name="x" size={12} /></button>
+              <img src={inputUrl(source.token)} alt={""} />
+              <span className="role start">{source.take ? tr("take {0}", { 0: source.take }) : tr('your image')}</span>
+              <button type="button" className="x" onClick={() => { setSource(null); setMask(null); setParams({ take: null }); }} aria-label={tr("remove")}><Icon name="x" size={12} /></button>
             </div>
           ) : (
-            <DropWell accept="image/*" onFile={addSource} icon="image" title="Add the image to change" sub="Or open any still in the Library and pick Edit." />
+            <DropWell accept="image/*" onFile={addSource} icon="image" title={tr("Add the image to change")} sub="Or open any still in the Library and pick Edit." />
           )}
         </div>
 
         {app.id === 'free' && (
           <div className="rail-section">
-            <div className="label">More images · optional</div>
+            <div className="label">{tr("More images · optional")}</div>
             <div className="ref-row">
               {refs.map((t, i) => (
                 <div key={t} className="ref">
-                  <img src={inputUrl(t)} alt="" />
-                  <span className="role">image {i + 2}</span>
-                  <button type="button" className="x" onClick={() => setRefs((r) => r.filter((x) => x !== t))} aria-label="remove"><Icon name="x" size={12} /></button>
+                  <img src={inputUrl(t)} alt={""} />
+                  <span className="role">{tr("image ")}{i + 2}</span>
+                  <button type="button" className="x" onClick={() => setRefs((r) => r.filter((x) => x !== t))} aria-label={tr("remove")}><Icon name="x" size={12} /></button>
                 </div>
               ))}
-              {refs.length < 2 && <DropWell accept="image/*" onFile={addRef} icon="ref" compact title="+ Image" sub="" />}
+              {refs.length < 2 && <DropWell accept="image/*" onFile={addRef} icon="ref" compact title={tr("+ Image")} sub="" />}
             </div>
-            <div className="label" style={{ textTransform: 'none', letterSpacing: 0 }}>Refer to them by number: put the jacket from image 2 on the man in image 1.</div>
+            <div className="label" style={{ textTransform: 'none', letterSpacing: 0 }}>{tr("Refer to them by number: put the jacket from image 2 on the man in image 1.")}</div>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
               <button type="button" className={`chip ${view === 'mask' ? 'on' : ''}`} disabled={!source} onClick={() => setView(view === 'mask' ? 'takes' : 'mask')}>
-                <Icon name="wand" size={14} />{mask ? 'Mask painted' : 'Paint where to change'}
+                <Icon name="wand" size={14} />{mask ? tr('Mask painted') : tr('Paint where to change')}
               </button>
-              {mask && <button type="button" className="btn sm ghost" onClick={() => setMask(null)}>Clear mask</button>}
+              {mask && <button type="button" className="btn sm ghost" onClick={() => setMask(null)}>{tr("Clear mask")}</button>}
             </div>
           </div>
         )}
 
         {app.chips.length > 0 && (
           <div className="rail-section">
-            <div className="label">{app.id === 'relight' ? 'Light' : app.id === 'next' ? 'Beats' : app.id === 'pushin' ? 'Steps' : 'Shots'} · {chips.length} picked</div>
+            <div className="label">{app.id === 'relight' ? tr('Light') : app.id === 'next' ? tr('Beats') : app.id === 'pushin' ? tr('Steps') : tr('Shots')} · {chips.length} {tr("picked")}</div>
             <div className="chip-row">
               {app.chips.map((c) => (
-                <button key={c.id} type="button" className={`chip ${chips.includes(c.id) ? 'on' : ''}`} onClick={() => toggle(c.id)}>{c.label}</button>
+                <button key={c.id} type="button" className={`chip ${chips.includes(c.id) ? 'on' : ''}`} onClick={() => toggle(c.id)}>{tr(c.label)}</button>
               ))}
             </div>
           </div>
@@ -224,10 +225,10 @@ export default function EditPage() {
 
         {app.id === 'relight' && (
           <div className="rail-section">
-            <div className="label">Coming from</div>
+            <div className="label">{tr("Coming from")}</div>
             <div className="chip-row">
               {RELIGHT_DIRECTIONS.map((d) => (
-                <button key={d.id} type="button" className={`chip ${direction === d.id ? 'on' : ''}`} onClick={() => setDirection(d.id)}>{d.label}</button>
+                <button key={d.id} type="button" className={`chip ${direction === d.id ? 'on' : ''}`} onClick={() => setDirection(d.id)}>{tr(d.label)}</button>
               ))}
             </div>
           </div>
@@ -235,47 +236,47 @@ export default function EditPage() {
 
         {app.id === 'expand' && (
           <div className="rail-section">
-            <div className="label">New shape</div>
+            <div className="label">{tr("New shape")}</div>
             <div className="chip-row">
               {EXPAND_ASPECTS.map((a) => (
-                <button key={a.id} type="button" className={`chip ${expandTo === a.id ? 'on' : ''}`} onClick={() => setExpandTo(a.id)}>{a.label}</button>
+                <button key={a.id} type="button" className={`chip ${expandTo === a.id ? 'on' : ''}`} onClick={() => setExpandTo(a.id)}>{tr(a.label)}</button>
               ))}
             </div>
             <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}><span className="dim" style={{ fontSize: 12.5 }}>Pull back</span><span className="mono" style={{ fontSize: 12 }}>{Math.round((1 - zoom) * 100)}%</span></div>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}><span className="dim" style={{ fontSize: 12.5 }}>{tr("Pull back")}</span><span className="mono" style={{ fontSize: 12 }}>{Math.round((1 - zoom) * 100)}%</span></div>
               <input type="range" min={0.5} max={1} step={0.05} value={zoom} onChange={(e) => setZoom(Number(e.target.value))} style={{ width: '100%', accentColor: 'var(--accent)' }} />
-              <div className="label" style={{ textTransform: 'none', letterSpacing: 0 }}>0% fills the new shape edge to edge. More leaves room on every side.</div>
+              <div className="label" style={{ textTransform: 'none', letterSpacing: 0 }}>{tr("0% fills the new shape edge to edge. More leaves room on every side.")}</div>
             </div>
           </div>
         )}
 
         <div className="rail-section">
-          <div className="label">{app.id === 'free' ? 'What to change' : 'Direction · optional'}</div>
-          <MentionBox className="prompt" rows={3} value={text} onChange={setText} placeholder={app.id === 'free' ? `${app.hint} Type @ to bring in your cast.` : app.hint}
+          <div className="label">{app.id === 'free' ? tr('What to change') : tr('Direction · optional')}</div>
+          <MentionBox className="prompt" rows={3} value={text} onChange={setText} placeholder={app.id === 'free' ? tr("{0} Type @ to bring in your cast.", { 0: app.hint }) : tr(app.hint)}
             onKeyDown={(e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && source && !busy) void go(); }} />
         </div>
 
         <div className="chip-row" style={{ alignItems: 'center' }}>
-          <ChipMenu icon="res" value={quality} onChange={setQuality} title="Quality"
+          <ChipMenu icon="res" value={quality} onChange={setQuality} title={tr("Quality")}
             options={IMAGE_QUALITY.map((q) => ({ value: q.id, label: q.label, note: q.id === 'draft' ? '8 steps, ~9s each' : '20 steps, ~40s each' }))} />
-          <span className="chip"><Icon name="aspect" size={14} />{source ? `${size.w}x${size.h}` : '1 MP'}</span>
+          <span className="chip"><Icon name="aspect" size={14} />{source ? `${size.w}x${size.h}` : tr('1 MP')}</span>
           {many && <Stepper value={count} min={1} max={4} onChange={setCount} fmt={(v) => `${v}/4`} />}
         </div>
 
         <button type="button" className="generate" style={{ marginTop: 'auto' }} disabled={!!busy || !source || !planned} onClick={() => void go()}>
-          <span>{busy ?? (planned > 1 ? `${app.id === 'free' ? 'Edit' : app.name} · ${planned}` : app.id === 'free' ? 'Edit' : app.name)}</span>
-          <span className="cost">{est ? fmtSeconds(est * Math.max(1, planned)) : 'Qwen-Image-Edit'}</span>
+          <span>{tr(busy) ?? (planned > 1 ? `${app.id === 'free' ? tr('Edit') : tr(app.name)} · ${planned}` : app.id === 'free' ? tr('Edit') : tr(app.name))}</span>
+          <span className="cost">{est ? fmtSeconds(est * Math.max(1, planned)) : tr('Qwen-Image-Edit')}</span>
         </button>
       </aside>
 
       <section className="canvas">
         <div className="canvas-head">
           <div className="tabs" style={{ borderBottom: 0 }}>
-            <button type="button" className={view === 'takes' ? 'on' : ''} onClick={() => setView('takes')}>Results</button>
-            {view === 'mask' && <button type="button" className="on">Mask</button>}
-            {compareTake && <button type="button" className="on">Before and after</button>}
+            <button type="button" className={view === 'takes' ? 'on' : ''} onClick={() => setView('takes')}>{tr("Results")}</button>
+            {view === 'mask' && <button type="button" className="on">{tr("Mask")}</button>}
+            {compareTake && <button type="button" className="on">{tr("Before and after")}</button>}
           </div>
-          {view !== 'takes' && <button type="button" className="icon-btn" onClick={() => setView('takes')} aria-label="close"><Icon name="x" /></button>}
+          {view !== 'takes' && <button type="button" className="icon-btn" onClick={() => setView('takes')} aria-label={tr("close")}><Icon name="x" /></button>}
         </div>
         <div className="canvas-body">
           {view === 'mask' && source ? (
@@ -291,18 +292,18 @@ export default function EditPage() {
               <div className="fan">
                 {['orbit-right', 'golden', 'push-in', 'pull-back'].map((id) => <div key={id}><Clip src={presetClip(id)} className="" /></div>)}
               </div>
-              <div className="display" style={{ fontSize: 'clamp(34px,4.6vw,60px)' }}>Change a still <span className="hl">with words</span></div>
+              <div className="display" style={{ fontSize: 'clamp(34px,4.6vw,60px)' }}>{tr("Change a still ")}<span className="hl">{tr("with words")}</span></div>
               <div className="steps3">
-                <div><span className="label">01</span><b>Add an image</b><span className="dim">Or press Edit on any still in the Library.</span></div>
-                <div><span className="label">02</span><b>Pick an app</b><span className="dim">A new angle, nine shots, new light, a bigger frame.</span></div>
-                <div><span className="label">03</span><b>Compare</b><span className="dim">Drag across any result to see what changed.</span></div>
+                <div><span className="label">01</span><b>{tr("Add an image")}</b><span className="dim">{tr("Or press Edit on any still in the Library.")}</span></div>
+                <div><span className="label">02</span><b>{tr("Pick an app")}</b><span className="dim">{tr("A new angle, nine shots, new light, a bigger frame.")}</span></div>
+                <div><span className="label">03</span><b>{tr("Compare")}</b><span className="dim">{tr("Drag across any result to see what changed.")}</span></div>
               </div>
             </div>
           ) : (
             <div className="edit-batches">
               {batches.map((b) => (
                 <div key={b.key} className="edit-batch">
-                  <div className="label">{b.title}</div>
+                  <div className="label">{tr(b.title)}</div>
                   <div className={`grid edit-grid n${Math.min(b.takes.length, 9)}`}>
                     {b.takes.map((t) => (
                       <MediaCard key={t.id} take={t} onOpen={() => setView(t.id)} actions={<>
@@ -356,24 +357,24 @@ export function StillCompare({ take, actions }: { take: Take; actions?: React.Re
   const set = (e: React.MouseEvent<HTMLDivElement>) => { const r = e.currentTarget.getBoundingClientRect(); setX(Math.max(0, Math.min(100, ((e.clientX - r.left) / r.width) * 100))); };
   return (
     <div style={{ maxWidth: 1100, margin: '0 auto' }}>
-      {take.status !== 'done' ? <div className="empty">{take.status === 'failed' ? `Failed: ${take.error}` : 'Rendering...'}</div> : (
+      {take.status !== 'done' ? <div className="empty">{take.status === 'failed' ? tr("Failed: {0}", { 0: take.error }) : tr('Rendering...')}</div> : (
         <div className="compare" style={{ aspectRatio: `${s.width} / ${s.height}` }}
           onMouseMove={(e) => { if (e.buttons === 1) set(e); }} onClick={set}>
-          <img src={mediaUrl(take.id)} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
+          <img src={mediaUrl(take.id)} alt={""} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
           {before && (
             <div style={{ position: 'absolute', inset: 0, clipPath: `inset(0 ${100 - x}% 0 0)`, background: inner ? '#0b0a09' : undefined }}>
-              <img src={inputUrl(before)} alt="" style={{ position: 'absolute', ...pos, objectFit: 'cover' }} />
+              <img src={inputUrl(before)} alt={""} style={{ position: 'absolute', ...pos, objectFit: 'cover' }} />
             </div>
           )}
           <div className="compare-line" style={{ left: `${x}%` }} />
-          <span className="badge" style={{ position: 'absolute', top: 12, left: 12 }}>before</span>
-          <span className="badge" style={{ position: 'absolute', top: 12, right: 12 }}>after</span>
+          <span className="badge" style={{ position: 'absolute', top: 12, left: 12 }}>{tr("before")}</span>
+          <span className="badge" style={{ position: 'absolute', top: 12, right: 12 }}>{tr("after")}</span>
         </div>
       )}
-      <div className="dim" style={{ marginTop: 10, fontSize: 12.5 }}>Drag across the frame to compare. {s.userPrompt}</div>
+      <div className="dim" style={{ marginTop: 10, fontSize: 12.5 }}>{tr("Drag across the frame to compare. ")}{s.userPrompt}</div>
       {s.instruction && (
         <details style={{ marginTop: 8 }}>
-          <summary className="label" style={{ cursor: 'pointer' }}>Instruction sent to the model</summary>
+          <summary className="label" style={{ cursor: 'pointer' }}>{tr("Instruction sent to the model")}</summary>
           <div className="compiled" style={{ marginTop: 6 }}>{s.instruction}</div>
         </details>
       )}
@@ -438,9 +439,9 @@ function MaskPainter({ source, onDone, onCancel }: { source: Source; onDone: (to
       o.drawImage(soft, 0, 0);
       const blob = await new Promise<Blob>((res) => out.toBlob((b) => res(b!), 'image/png'));
       onDone(await uploadFile(new File([blob], 'mask.png', { type: 'image/png' })));
-      toast('Mask set. Only the painted area will change.');
+      toast(tr('Mask set. Only the painted area will change.'));
     } catch (e) {
-      toast(e instanceof Error ? e.message : 'could not save the mask', true);
+      toast(e instanceof Error ? e.message : tr('could not save the mask'), true);
     } finally {
       setSaving(false);
     }
@@ -449,18 +450,18 @@ function MaskPainter({ source, onDone, onCancel }: { source: Source; onDone: (to
   return (
     <div style={{ maxWidth: 1100, margin: '0 auto' }}>
       <div className="compare" style={{ aspectRatio: `${W} / ${H}`, cursor: 'crosshair' }}>
-        <img src={inputUrl(source.token)} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
+        <img src={inputUrl(source.token)} alt={""} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
         <canvas ref={canvas} width={W} height={H} onPointerDown={(e) => { e.currentTarget.setPointerCapture(e.pointerId); last.current = null; paint(e); }} onPointerMove={paint}
           onPointerUp={() => { last.current = null; }} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', opacity: 0.55, touchAction: 'none' }} />
       </div>
       <div className="chip-row" style={{ marginTop: 12, alignItems: 'center', gap: 8 }}>
-        <span className="dim" style={{ fontSize: 12.5 }}>Brush</span>
+        <span className="dim" style={{ fontSize: 12.5 }}>{tr("Brush")}</span>
         <input type="range" min={0.02} max={0.16} step={0.01} value={brush} onChange={(e) => setBrush(Number(e.target.value))} style={{ width: 140, accentColor: 'var(--accent)' }} />
-        <button type="button" className="btn sm" onClick={() => canvas.current!.getContext('2d')!.clearRect(0, 0, W, H)}>Clear</button>
-        <button type="button" className="btn sm accent" disabled={saving} onClick={() => void save()}>Use this mask</button>
-        <button type="button" className="btn sm ghost" onClick={onCancel}>Cancel</button>
+        <button type="button" className="btn sm" onClick={() => canvas.current!.getContext('2d')!.clearRect(0, 0, W, H)}>{tr("Clear")}</button>
+        <button type="button" className="btn sm accent" disabled={saving} onClick={() => void save()}>{tr("Use this mask")}</button>
+        <button type="button" className="btn sm ghost" onClick={onCancel}>{tr("Cancel")}</button>
       </div>
-      <div className="dim" style={{ marginTop: 8, fontSize: 12.5 }}>Paint over what should change. Everything you leave unpainted comes back exactly as it was.</div>
+      <div className="dim" style={{ marginTop: 8, fontSize: 12.5 }}>{tr("Paint over what should change. Everything you leave unpainted comes back exactly as it was.")}</div>
     </div>
   );
 }

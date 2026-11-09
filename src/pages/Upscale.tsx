@@ -5,6 +5,7 @@
  *   Dream    LTX-2.5 latent upscale + prompt-steered refine (video).
  * Results open in a before/after drag compare.
  */
+import { tr } from '../i18n';
 import { useEffect, useRef, useState } from 'react';
 import { downloadUrl, inputUrl, mediaUrl, posterUrl, uploadFile, type Take } from '../api';
 import { setParams, useRoute } from '../router';
@@ -96,9 +97,9 @@ export default function UpscalePage() {
 
   async function addFile(f: File) {
     const kind = f.type.startsWith('video/') ? 'video' : f.type.startsWith('image/') ? 'image' : null;
-    if (!kind) { toast('Drop a video or an image', true); return; }
-    if (f.size > 45e6) { toast('File is over 45 MB. Trim or re-encode it first.', true); return; }
-    setBusy('Uploading...');
+    if (!kind) { toast(tr('Drop a video or an image'), true); return; }
+    if (f.size > 45e6) { toast(tr('File is over 45 MB. Trim or re-encode it first.'), true); return; }
+    setBusy(tr('Uploading...'));
     try {
       const url = URL.createObjectURL(f);
       const m = await measure(url, kind);
@@ -106,7 +107,7 @@ export default function UpscalePage() {
       setParams({ take: null });
       setCompare(null);
     } catch (e) {
-      toast(e instanceof Error ? e.message : 'upload failed', true);
+      toast(e instanceof Error ? e.message : tr('upload failed'), true);
     } finally {
       setBusy(null);
     }
@@ -114,10 +115,10 @@ export default function UpscalePage() {
 
   // Upscale has one source slot for both kinds: a video or an image dropped
   // anywhere on the page (or on the filled slot) becomes the new source.
-  usePageDrop('Drop a video or an image to upscale it', (files) => {
+  usePageDrop(tr('Drop a video or an image to upscale it'), (files) => {
     const f = files[0];
     if (f.type.startsWith('video/') || f.type.startsWith('image/')) void addFile(f);
-    else toast('Drop a video or an image', true);
+    else toast(tr('Drop a video or an image'), true);
   });
   const replaceZone = useDropZone((files) => void addFile(files[0]));
 
@@ -134,7 +135,7 @@ export default function UpscalePage() {
 
   async function go() {
     if (!source || blocked) return;
-    setBusy('Queuing...');
+    setBusy(tr('Queuing...'));
     try {
       const r = await api.generate({
         kind: 'upscale', app: 'upscale', mode, sourceTake: source.take, source: source.token, sourceKind: source.kind,
@@ -146,9 +147,9 @@ export default function UpscalePage() {
       });
       setCompare(null);
       setTab('takes');
-      toast(`Queued ${modeLabel(mode).toLowerCase()} as take ${r.takeId}`);
+      toast(tr("Queued {0} as take {1}", { 0: modeLabel(mode).toLowerCase(), 1: r.takeId }));
     } catch (e) {
-      toast(e instanceof Error ? e.message : 'failed', true);
+      toast(e instanceof Error ? e.message : tr('failed'), true);
     } finally {
       setBusy(null);
     }
@@ -161,44 +162,43 @@ export default function UpscalePage() {
     <div className="rail-layout" style={{ gridTemplateColumns: '360px 1fr' }}>
       <aside className="rail">
         {source && <Spill src={source.take ? posterUrl(source.take) : source.url} video={!source.take && video} key={source.url} />}
-        <div className="display" style={{ fontSize: 26 }}>Upscale</div>
+        <div className="display" style={{ fontSize: 26 }}>{tr("Upscale")}</div>
 
         <div className="rail-section">
-          <div className="label">Source</div>
+          <div className="label">{tr("Source")}</div>
           {source ? (
             <div className={`ref ${replaceZone.over ? 'drag' : ''}`} style={{ aspectRatio: `${source.w || 16} / ${source.h || 9}` }} {...replaceZone.props}>
-              {video ? <video src={source.url} muted loop autoPlay playsInline /> : <img src={source.url} alt="" />}
+              {video ? <video src={source.url} muted loop autoPlay playsInline /> : <img src={source.url} alt={""} />}
               <span className="role">{source.w}x{source.h}{video ? ` · ${source.seconds.toFixed(1)}s` : ''}</span>
-              <button type="button" className="x" onClick={() => { setSource(null); setParams({ take: null }); }} aria-label="remove"><Icon name="x" size={12} /></button>
+              <button type="button" className="x" onClick={() => { setSource(null); setParams({ take: null }); }} aria-label={tr("remove")}><Icon name="x" size={12} /></button>
             </div>
           ) : (
-            <DropWell accept="video/*,image/*" onFile={addFile} icon="up" title="Add a video or an image" sub="MP4, MOV, PNG, JPG or WebP, up to 45 MB." />
+            <DropWell accept="video/*,image/*" onFile={addFile} icon="up" title={tr("Add a video or an image")} sub="MP4, MOV, PNG, JPG or WebP, up to 45 MB." />
           )}
           <button type="button" className={`btn sm ${tab === 'library' ? 'accent' : ''}`} onClick={() => { setCompare(null); setTab(tab === 'library' ? 'takes' : 'library'); }}>
-            <Icon name="grid" size={14} />Pick from library
-          </button>
+            <Icon name="grid" size={14} />{tr("Pick from library")}</button>
         </div>
 
         <div className="seg">
           {UPSCALE_MODES.map((m) => (
-            <button key={m.id} type="button" className={mode === m.id ? 'on' : ''} onClick={() => setParams({ mode: m.id === 'sharpen' ? null : m.id })}>{m.label}</button>
+            <button key={m.id} type="button" className={mode === m.id ? 'on' : ''} onClick={() => setParams({ mode: m.id === 'sharpen' ? null : m.id })}>{tr(m.label)}</button>
           ))}
         </div>
-        <div className="dim" style={{ fontSize: 12.5, marginTop: -4 }}>{modeDef.note}</div>
+        <div className="dim" style={{ fontSize: 12.5, marginTop: -4 }}>{tr(modeDef.note)}</div>
 
         {mode === 'sharpen' && (
           <div className="rail-section">
-            <div className="label">Model</div>
+            <div className="label">{tr("Model")}</div>
             {SHARPEN_MODELS.map((m) => (
               <button key={m.id} type="button" className="rail-row" onClick={() => setSharpModel(m.id)} style={sharpModel === m.id ? { borderColor: 'rgba(255, 181, 71, 0.6)' } : undefined}>
-                <span><span className="val" style={{ color: sharpModel === m.id ? 'var(--accent-hi)' : undefined }}>{m.label}</span><span className="dim" style={{ fontSize: 12 }}>{m.note}</span></span>
+                <span><span className="val" style={{ color: sharpModel === m.id ? 'var(--accent-hi)' : undefined }}>{tr(m.label)}</span><span className="dim" style={{ fontSize: 12 }}>{tr(m.note)}</span></span>
                 {sharpModel === m.id && <Icon name="chev" size={14} />}
               </button>
             ))}
             {video && (
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <span className="dim" style={{ fontSize: 12.5 }}>Double the frame rate (RIFE)</span>
-                <Switch on={rife} onChange={setRife} label="double the frame rate" />
+                <span className="dim" style={{ fontSize: 12.5 }}>{tr("Double the frame rate (RIFE)")}</span>
+                <Switch on={rife} onChange={setRife} label={tr("double the frame rate")} />
               </div>
             )}
           </div>
@@ -206,17 +206,17 @@ export default function UpscalePage() {
 
         {mode === 'redraw' && (
           <div className="rail-section">
-            <div className="label">Model</div>
+            <div className="label">{tr("Model")}</div>
             <div className="seg">
-              {REDRAW_MODELS.map((m) => <button key={m.id} type="button" className={redrawModel === m.id ? 'on' : ''} onClick={() => setRedrawModel(m.id)}>{m.label}</button>)}
+              {REDRAW_MODELS.map((m) => <button key={m.id} type="button" className={redrawModel === m.id ? 'on' : ''} onClick={() => setRedrawModel(m.id)}>{tr(m.label)}</button>)}
             </div>
-            <div className="dim" style={{ fontSize: 12 }}>{REDRAW_MODELS.find((m) => m.id === redrawModel)!.note}</div>
-            <div className="label" style={{ marginTop: 4 }}>Target</div>
+            <div className="dim" style={{ fontSize: 12 }}>{tr(REDRAW_MODELS.find((m) => m.id === redrawModel)!.note)}</div>
+            <div className="label" style={{ marginTop: 4 }}>{tr("Target")}</div>
             <div className="seg">
               {REDRAW_HEIGHTS.map((h) => <button key={h} type="button" className={upHeight === h ? 'on' : ''} onClick={() => setUpHeight(h)}>{h}p</button>)}
             </div>
             <div className="chip-row">
-              <ChipMenu icon="palette" label="Color" value={color} onChange={(v) => setColor(v as RedrawColor)} dir="down" title="Color"
+              <ChipMenu icon="palette" label={tr("Color")} value={color} onChange={(v) => setColor(v as RedrawColor)} dir="down" title={tr("Color")}
                 options={REDRAW_COLOR.map((c) => ({ value: c.id, label: c.label, note: c.note }))} />
             </div>
           </div>
@@ -225,14 +225,14 @@ export default function UpscalePage() {
         {mode === 'dream' && (
           <>
             <div className="rail-section">
-              <div className="label">What to add or reimagine · optional</div>
+              <div className="label">{tr("What to add or reimagine · optional")}</div>
               <textarea className="prompt" rows={3} value={prompt} onChange={(e) => setPrompt(e.target.value)}
-                placeholder="Wet cobblestones, embroidered fabric, frost on the glass." />
+                placeholder={tr("Wet cobblestones, embroidered fabric, frost on the glass.")} />
             </div>
             <div className="rail-section">
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}><span className="label">Creativity</span><span className="mono dim" style={{ fontSize: 12 }}>{creativity.toFixed(2)}</span></div>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}><span className="label">{tr("Creativity")}</span><span className="mono dim" style={{ fontSize: 12 }}>{creativity.toFixed(2)}</span></div>
               <input type="range" min={DREAM_CREATIVITY.min} max={DREAM_CREATIVITY.max} step={0.05} value={creativity} onChange={(e) => setCreativity(Number(e.target.value))} />
-              <div style={{ display: 'flex', justifyContent: 'space-between' }} className="label"><span>Faithful</span><span>Reimagined</span></div>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }} className="label"><span>{tr("Faithful")}</span><span>{tr("Reimagined")}</span></div>
             </div>
           </>
         )}
@@ -240,14 +240,14 @@ export default function UpscalePage() {
         {source && (
           <div className="chip-row" style={{ alignItems: 'center' }}>
             <span className="chip"><Icon name="aspect" size={14} />{source.w}x{source.h} → {out.w}x{out.h}</span>
-            {video && <span className="chip"><Icon name="clock" size={14} />{seconds}s{source.seconds > cap + 0.05 ? ` of ${source.seconds.toFixed(1)}` : ''}</span>}
+            {video && <span className="chip"><Icon name="clock" size={14} />{seconds}s{source.seconds > cap + 0.05 ? tr(" of {0}", { 0: source.seconds.toFixed(1) }) : ''}</span>}
           </div>
         )}
-        {blocked && <div className="dim" style={{ fontSize: 12.5, color: 'var(--accent-hi)' }}>{blocked}</div>}
-        {mode === 'sharpen' && sharpModel === 'ultrasharp' && <div className="label" style={{ textTransform: 'none', letterSpacing: 0 }}>{SHARPEN_MODELS[1].warn}</div>}
+        {blocked && <div className="dim" style={{ fontSize: 12.5, color: 'var(--accent-hi)' }}>{tr(blocked)}</div>}
+        {mode === 'sharpen' && sharpModel === 'ultrasharp' && <div className="label" style={{ textTransform: 'none', letterSpacing: 0 }}>{tr(SHARPEN_MODELS[1].warn)}</div>}
 
         <button type="button" className="generate" style={{ marginTop: 'auto' }} disabled={!!busy || !source || !!blocked} onClick={() => void go()}>
-          <span>{busy ?? modeDef.label}</span>
+          <span>{tr(busy) ?? tr(modeDef.label)}</span>
           <span className="cost">{est ? fmtSeconds(est) : engine}</span>
         </button>
       </aside>
@@ -255,17 +255,17 @@ export default function UpscalePage() {
       <section className="canvas">
         <div className="canvas-head">
           <div className="tabs" style={{ borderBottom: 0 }}>
-            <button type="button" className={tab === 'takes' && !compareTake ? 'on' : ''} onClick={() => { setTab('takes'); setCompare(null); }}>Takes</button>
-            <button type="button" className={tab === 'library' && !compareTake ? 'on' : ''} onClick={() => { setTab('library'); setCompare(null); }}>Library</button>
-            {compareTake && <button type="button" className="on">Before and after</button>}
+            <button type="button" className={tab === 'takes' && !compareTake ? 'on' : ''} onClick={() => { setTab('takes'); setCompare(null); }}>{tr("Takes")}</button>
+            <button type="button" className={tab === 'library' && !compareTake ? 'on' : ''} onClick={() => { setTab('library'); setCompare(null); }}>{tr("Library")}</button>
+            {compareTake && <button type="button" className="on">{tr("Before and after")}</button>}
           </div>
-          {compareTake && <button type="button" className="icon-btn" onClick={() => setCompare(null)} aria-label="close"><Icon name="x" /></button>}
+          {compareTake && <button type="button" className="icon-btn" onClick={() => setCompare(null)} aria-label={tr("close")}><Icon name="x" /></button>}
         </div>
         <div className="canvas-body">
           {compareTake ? <BeforeAfter take={compareTake} /> : tab === 'library' ? (
-            library.length === 0 ? <div className="empty">No finished takes yet. Drop a file in the source well instead.</div> : (
+            library.length === 0 ? <div className="empty">{tr("No finished takes yet. Drop a file in the source well instead.")}</div> : (
               <>
-                <div className="label" style={{ marginBottom: 12 }}>Pick a take to upscale</div>
+                <div className="label" style={{ marginBottom: 12 }}>{tr("Pick a take to upscale")}</div>
                 <div className="grid dense">
                   {library.map((t) => (
                     <div key={t.id} style={source?.take === t.id ? { borderRadius: 12, boxShadow: '0 0 0 2px var(--accent)' } : undefined}>
@@ -277,12 +277,12 @@ export default function UpscalePage() {
             )
           ) : takes.length === 0 ? (
             <div className="hero-empty">
-              <div className="label" style={{ marginBottom: 14 }}>More pixels, three ways</div>
-              <div className="display" style={{ fontSize: 'clamp(34px,4.6vw,60px)' }}>Sharpen it, redraw it, <span className="hl">or dream it bigger</span></div>
+              <div className="label" style={{ marginBottom: 14 }}>{tr("More pixels, three ways")}</div>
+              <div className="display" style={{ fontSize: 'clamp(34px,4.6vw,60px)' }}>{tr("Sharpen it, redraw it, ")}<span className="hl">{tr("or dream it bigger")}</span></div>
               <div className="steps3">
-                <div><span className="label">01</span><b>Sharpen</b><span className="dim">2x in seconds. Every pixel stays where it was.</span></div>
-                <div><span className="label">02</span><b>Redraw</b><span className="dim">SeedVR2 rebuilds texture and fine detail at 1080p or 1440p.</span></div>
-                <div><span className="label">03</span><b>Dream</b><span className="dim">LTX-2.5 re-imagines the clip at 2x, steered by your words.</span></div>
+                <div><span className="label">01</span><b>{tr("Sharpen")}</b><span className="dim">{tr("2x in seconds. Every pixel stays where it was.")}</span></div>
+                <div><span className="label">02</span><b>{tr("Redraw")}</b><span className="dim">{tr("SeedVR2 rebuilds texture and fine detail at 1080p or 1440p.")}</span></div>
+                <div><span className="label">03</span><b>{tr("Dream")}</b><span className="dim">{tr("LTX-2.5 re-imagines the clip at 2x, steered by your words.")}</span></div>
               </div>
             </div>
           ) : (
@@ -340,7 +340,7 @@ function BeforeAfter({ take }: { take: Take }) {
   };
   const layer = { position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', transform: `scale(${scale})`, transformOrigin: `${origin.x}% ${origin.y}%` } as const;
   const media = (src: string, ref: React.RefObject<HTMLVideoElement | null>, lead: boolean) => image
-    ? <img src={src} alt="" style={{ ...layer, imageRendering: scale > 1 ? 'auto' : undefined }} draggable={false} />
+    ? <img src={src} alt={""} style={{ ...layer, imageRendering: scale > 1 ? 'auto' : undefined }} draggable={false} />
     : <video ref={ref} src={src} muted loop autoPlay playsInline onTimeUpdate={lead ? sync : undefined} style={layer} />;
 
   return (
@@ -356,24 +356,24 @@ function BeforeAfter({ take }: { take: Take }) {
         {media(mediaUrl(take.id), b, true)}
         {before && <div style={{ position: 'absolute', inset: 0, overflow: 'hidden', clipPath: `inset(0 ${100 - x}% 0 0)` }}>{media(before, a, false)}</div>}
         <div className="compare-line" style={{ left: `${x}%` }}><span><Icon name="mirror" size={14} /></span></div>
-        <span className="badge" style={{ position: 'absolute', top: 12, left: 12 }}>before · {s.sourceWidth ?? '?'}x{s.sourceHeight ?? '?'}</span>
-        <span className="badge" style={{ position: 'absolute', top: 12, right: 12 }}>{modeLabel(s.mode)} · {s.width}x{s.height}</span>
+        <span className="badge" style={{ position: 'absolute', top: 12, left: 12 }}>{tr("before · ")}{s.sourceWidth ?? '?'}x{s.sourceHeight ?? '?'}</span>
+        <span className="badge" style={{ position: 'absolute', top: 12, right: 12 }}>{tr(modeLabel(s.mode))} · {s.width}x{s.height}</span>
       </div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, marginTop: 10, flexWrap: 'wrap' }}>
         <div className="dim" style={{ fontSize: 12.5 }}>
-          Drag across the frame to compare.{scale > 1 ? ' Move the pointer to look around.' : ''}
-          {take.render_seconds ? ` Rendered in ${Math.round(take.render_seconds)}s on this GPU.` : ''}
-          {!before && ' The source of this take is no longer available.'}
+          {tr("Drag across the frame to compare.")}{scale > 1 ? tr(' Move the pointer to look around.') : ''}
+          {take.render_seconds ? tr(" Rendered in {0}s on this GPU.", { 0: Math.round(take.render_seconds) }) : ''}
+          {!before && tr(' The source of this take is no longer available.')}
         </div>
         <div style={{ display: 'flex', gap: 6 }}>
           <div className="seg" style={{ width: 170 }}>
-            <button type="button" className={zoom === 'fit' ? 'on' : ''} onClick={() => setZoom('fit')}>Fit</button>
-            <button type="button" className={zoom === 'pixels' ? 'on' : ''} onClick={() => setZoom('pixels')}>Pixels</button>
+            <button type="button" className={zoom === 'fit' ? 'on' : ''} onClick={() => setZoom('fit')}>{tr("Fit")}</button>
+            <button type="button" className={zoom === 'pixels' ? 'on' : ''} onClick={() => setZoom('pixels')}>{tr("Pixels")}</button>
           </div>
-          <a className="btn sm" href={downloadUrl(take.id)}><Icon name="download" size={14} />Download</a>
+          <a className="btn sm" href={downloadUrl(take.id)}><Icon name="download" size={14} />{tr("Download")}</a>
         </div>
       </div>
-      {s.mode === 'dream' && <div className="dim" style={{ marginTop: 8, fontSize: 12.5 }}>Creativity {Number(s.creativity).toFixed(2)} · {s.userPrompt}</div>}
+      {s.mode === 'dream' && <div className="dim" style={{ marginTop: 8, fontSize: 12.5 }}>{tr("Creativity ")}{Number(s.creativity).toFixed(2)} · {s.userPrompt}</div>}
     </div>
   );
 }

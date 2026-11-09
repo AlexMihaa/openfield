@@ -213,6 +213,22 @@ With the OpenField server running, ask in plain words: "Make a 5 second dolly
 shot of a lighthouse at dusk, then upscale the best take." Claude Desktop setup,
 the tool list and example prompts are in [`docs/MCP.md`](docs/MCP.md).
 
+## Interface language
+
+Use the language selector in the header to switch between English and Russian.
+OpenField remembers the choice in this browser. On a first visit, Russian is
+selected for browsers with Russian in their preferred languages; otherwise the
+interface starts in English. Changing language keeps the current page and drafts.
+
+Translations cover the web interface and catalog display text. Model names,
+workflow IDs, commands, generated prompts, cast names and user content stay as
+entered. Engine errors and other messages returned by external services retain
+their original text. New or unknown messages fall back to English.
+
+To maintain the catalog, add English source messages through `tr()` and their
+Russian equivalents to `src/locales/ru.ts`. Keep placeholders and intentional
+spaces intact. Run `npm run test:i18n` and `npm run build` before submitting.
+
 ## Configuration
 
 All optional, in `.env` (see [`.env.example`](.env.example)):

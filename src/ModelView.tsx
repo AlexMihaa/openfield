@@ -4,6 +4,7 @@
  * The model is framed by its bounds, so any scale TRELLIS.2 (or anything else)
  * hands us fits the view. Until the file has loaded, the poster shows.
  */
+import { tr } from './i18n';
 import { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
@@ -161,10 +162,10 @@ export default function ModelView({ src, poster, look = 'lit', spin = true, clas
   return (
     <div className={`model-view ${className ?? ''}`} style={style} data-state={state}>
       <div ref={host} className="model-canvas" />
-      {state !== 'ready' && poster && <img className="model-poster" src={poster} alt="" />}
-      {state === 'loading' && <span className="badge model-note">Loading the model...</span>}
-      {state === 'error' && <span className="badge model-note">This browser could not show the model. Download the GLB to open it elsewhere.</span>}
-      {stats && <span className="model-stats mono">{stats.tris.toLocaleString()} triangles</span>}
+      {state !== 'ready' && poster && <img className="model-poster" src={poster} alt={""} />}
+      {state === 'loading' && <span className="badge model-note">{tr("Loading the model...")}</span>}
+      {state === 'error' && <span className="badge model-note">{tr("This browser could not show the model. Download the GLB to open it elsewhere.")}</span>}
+      {stats && <span className="model-stats mono">{stats.tris.toLocaleString()} {tr("triangles")}</span>}
     </div>
   );
 }

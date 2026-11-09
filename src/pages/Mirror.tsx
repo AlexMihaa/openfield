@@ -4,6 +4,7 @@
  * Two more modes share the clip: Restyle (a new look for the whole shot) and
  * Object swap (one thing replaced), in ./MirrorEdit.tsx.
  */
+import { tr } from '../i18n';
 import { useEffect, useRef, useState } from 'react';
 import { api, downloadUrl, inputUrl, mediaUrl, takeAsInput, uploadFile, type Take } from '../api';
 import { setParams, useRoute } from '../router';
@@ -49,7 +50,7 @@ export default function MirrorPage() {
         const m = await probeClip(url);
         if (live) setClip({ token, url, seconds: m.s, w: m.w, h: m.h, name: `take ${fromTake}` });
       })
-      .catch((e) => toast(e instanceof Error ? e.message : 'could not load that take', true));
+      .catch((e) => toast(e instanceof Error ? e.message : tr('could not load that take'), true));
     return () => { live = false; };
   }, [fromTake]);
   const [frame, setFrame] = useState<string | null>(null);
@@ -69,18 +70,18 @@ export default function MirrorPage() {
   const takes = useStore((s) => s.takes.filter((t) => inFeed(t) && ['mirror', 'restyle', 'swap'].includes(settingsOf(t).app)));
 
   async function addClip(f: File) {
-    if (!f.type.startsWith('video/')) { toast('Drop a video clip (MP4 or MOV)', true); return; }
-    if (f.size > 90e6) { toast('Clip is over 90 MB. Trim it to 12 seconds or less.', true); return; }
-    setBusy('Uploading clip...');
+    if (!f.type.startsWith('video/')) { toast(tr('Drop a video clip (MP4 or MOV)'), true); return; }
+    if (f.size > 90e6) { toast(tr('Clip is over 90 MB. Trim it to 12 seconds or less.'), true); return; }
+    setBusy(tr('Uploading clip...'));
     try {
       const url = URL.createObjectURL(f);
       const meta = await probeClip(url);
-      if (meta.s < 1.5) { toast('Clip is too short. Use 2 to 12 seconds.', true); return; }
+      if (meta.s < 1.5) { toast(tr('Clip is too short. Use 2 to 12 seconds.'), true); return; }
       const token = await uploadFile(f);
       setClip({ token, url, seconds: meta.s, w: meta.w, h: meta.h, name: f.name });
-      if (meta.s > 12.5) toast('Using the first 12 seconds of the clip');
+      if (meta.s > 12.5) toast(tr('Using the first 12 seconds of the clip'));
     } catch (e) {
-      toast(e instanceof Error ? e.message : 'upload failed', true);
+      toast(e instanceof Error ? e.message : tr('upload failed'), true);
     } finally {
       setBusy(null);
     }
@@ -90,18 +91,18 @@ export default function MirrorPage() {
   async function addPhoneClip(token: string, name: string) {
     const url = inputUrl(token);
     const meta = await probeClip(url);
-    if (meta.s < 1.5) { toast('That phone clip is too short. Use 2 to 12 seconds.', true); return; }
+    if (meta.s < 1.5) { toast(tr('That phone clip is too short. Use 2 to 12 seconds.'), true); return; }
     setClip({ token, url, seconds: meta.s, w: meta.w, h: meta.h, name });
-    toast(meta.s > 12.5 ? 'Clip from your phone is in. Using the first 12 seconds.' : 'Clip from your phone is in');
+    toast(meta.s > 12.5 ? tr('Clip from your phone is in. Using the first 12 seconds.') : tr('Clip from your phone is in'));
   }
 
   async function addFrame(f: File) {
     if (!f.type.startsWith('image/')) return;
-    setBusy('Uploading frame...');
+    setBusy(tr('Uploading frame...'));
     try { setFrame(await uploadFile(f)); } catch (e) { toast(String(e), true); } finally { setBusy(null); }
   }
 
-  usePageDrop('Drop a clip to copy its motion, or an image as the first frame', (files) => {
+  usePageDrop(tr('Drop a clip to copy its motion, or an image as the first frame'), (files) => {
     const f = files[0];
     if (f.type.startsWith('video/')) void addClip(f);
     else if (f.type.startsWith('image/')) void addFrame(f);
@@ -109,16 +110,16 @@ export default function MirrorPage() {
 
   async function go() {
     if (!clip) return;
-    setBusy('Queuing...');
+    setBusy(tr('Queuing...'));
     try {
       const r = await api.generate({
         kind: 'mirror', app: 'mirror', videoModel: 'mirror', control, sourceVideo: clip.token, startImage: frame ?? undefined,
         prompt, userPrompt: prompt, width: size.w, height: size.h, seconds, guideStrength: strength, withAudio: audio, count,
         shotName: (prompt || 'mirror').slice(0, 40),
       });
-      toast(`Queued ${r.takeIds.length} take${r.takeIds.length > 1 ? 's' : ''}`);
+      toast(tr("Queued takes: {0}", { 0: r.takeIds.length }));
     } catch (e) {
-      toast(e instanceof Error ? e.message : 'failed', true);
+      toast(e instanceof Error ? e.message : tr('failed'), true);
     } finally {
       setBusy(null);
     }
@@ -129,34 +130,34 @@ export default function MirrorPage() {
   return (
     <div className="rail-layout" style={{ gridTemplateColumns: '360px 1fr' }}>
       <aside className="rail">
-        <div className="display" style={{ fontSize: 26 }}>Mirror</div>
+        <div className="display" style={{ fontSize: 26 }}>{tr("Mirror")}</div>
         <div className="tabs" style={{ borderBottom: 0, marginTop: -6 }}>
           {MODES.filter((m) => m.id !== 'swap' || swapOn).map((m) => (
-            <button key={m.id} type="button" className={mode === m.id ? 'on' : ''} onClick={() => setParams({ mode: m.id === 'motion' ? null : m.id })}>{m.label}</button>
+            <button key={m.id} type="button" className={mode === m.id ? 'on' : ''} onClick={() => setParams({ mode: m.id === 'motion' ? null : m.id })}>{tr(m.label)}</button>
           ))}
         </div>
         {mode === 'motion' && <>
         <div className="seg">
           {CONTROLS.map((c) => (
-            <button key={c.id} type="button" className={control === c.id ? 'on' : ''} onClick={() => setParams({ control: c.id === 'pose' ? null : c.id })}>{c.label}</button>
+            <button key={c.id} type="button" className={control === c.id ? 'on' : ''} onClick={() => setParams({ control: c.id === 'pose' ? null : c.id })}>{tr(c.label)}</button>
           ))}
         </div>
-        <div className="dim" style={{ fontSize: 12.5, marginTop: -4 }}>{CONTROLS.find((c) => c.id === control)!.note}</div>
+        <div className="dim" style={{ fontSize: 12.5, marginTop: -4 }}>{tr(CONTROLS.find((c) => c.id === control)!.note)}</div>
         </>}
-        {mode === 'restyle' && <div className="dim" style={{ fontSize: 12.5, marginTop: -4 }}>Same moves and camera, a whole new look. The first frame is redrawn in the style, then the clip's motion carries it.</div>}
-        {mode === 'swap' && <div className="dim" style={{ fontSize: 12.5, marginTop: -4 }}>Replace one thing in the clip. Everything around it stays exactly as filmed. Experimental: best on objects; for a person, use Motion with a new first frame.</div>}
+        {mode === 'restyle' && <div className="dim" style={{ fontSize: 12.5, marginTop: -4 }}>{tr("Same moves and camera, a whole new look. The first frame is redrawn in the style, then the clip's motion carries it.")}</div>}
+        {mode === 'swap' && <div className="dim" style={{ fontSize: 12.5, marginTop: -4 }}>{tr("Replace one thing in the clip. Everything around it stays exactly as filmed. Experimental: best on objects; for a person, use Motion with a new first frame.")}</div>}
 
         <div className="rail-section">
-          <div className="label">Source clip</div>
+          <div className="label">{tr("Source clip")}</div>
           {clip ? (
             <div className="ref" style={{ aspectRatio: `${clip.w || 16} / ${clip.h || 9}` }}>
               <video src={clip.url} muted loop autoPlay playsInline />
               <span className="role">{Math.min(12, clip.seconds).toFixed(1)}s</span>
-              <button type="button" className="x" onClick={() => { setClip(null); setParams({ take: null }); }} aria-label="remove"><Icon name="x" size={12} /></button>
+              <button type="button" className="x" onClick={() => { setClip(null); setParams({ take: null }); }} aria-label={tr("remove")}><Icon name="x" size={12} /></button>
             </div>
           ) : (
             <>
-              <DropWell accept="video/*" onFile={addClip} icon="video" title="Add the clip to copy" sub="2 to 12 seconds. Film it the way the shot should be framed." />
+              <DropWell accept="video/*" onFile={addClip} icon="video" title={tr("Add the clip to copy")} sub="2 to 12 seconds. Film it the way the shot should be framed." />
               <PhoneDrop onClip={addPhoneClip} />
             </>
           )}
@@ -164,28 +165,28 @@ export default function MirrorPage() {
 
         {mode === 'restyle' ? <RestyleControls clip={clip} /> : mode === 'swap' ? <SwapControls clip={clip} /> : <>
         <div className="rail-section">
-          <div className="label">First frame · optional</div>
+          <div className="label">{tr("First frame · optional")}</div>
           {frame ? (
             <div className="ref" style={{ aspectRatio: '16/9' }}>
-              <img src={inputUrl(frame)} alt="" />
-              <span className="role start">first frame</span>
-              <button type="button" className="x" onClick={() => setFrame(null)} aria-label="remove"><Icon name="x" size={12} /></button>
+              <img src={inputUrl(frame)} alt={""} />
+              <span className="role start">{tr("first frame")}</span>
+              <button type="button" className="x" onClick={() => setFrame(null)} aria-label={tr("remove")}><Icon name="x" size={12} /></button>
             </div>
           ) : (
-            <DropWell accept="image/*" onFile={addFrame} icon="person" compact title="+ Character or world frame" sub="" />
+            <DropWell accept="image/*" onFile={addFrame} icon="person" compact title={tr("+ Character or world frame")} sub="" />
           )}
-          <div className="label" style={{ textTransform: 'none', letterSpacing: 0 }}>Match the clip's framing: same size in frame, same angle.</div>
+          <div className="label" style={{ textTransform: 'none', letterSpacing: 0 }}>{tr("Match the clip's framing: same size in frame, same angle.")}</div>
         </div>
 
         <div className="rail-section">
-          <div className="label">Who and where</div>
+          <div className="label">{tr("Who and where")}</div>
           <MentionBox className="prompt" rows={4} value={prompt} onChange={setPrompt}
-            placeholder="A knight in battered silver armor in a torchlit stone hall, same moves as the clip. Type @ for your cast." />
-          {!frame && castNamed && <div className="label" style={{ textTransform: 'none', letterSpacing: 0 }}>No first frame: one is made from your cast, in the clip's opening pose.</div>}
+            placeholder={tr("A knight in battered silver armor in a torchlit stone hall, same moves as the clip. Type @ for your cast.")} />
+          {!frame && castNamed && <div className="label" style={{ textTransform: 'none', letterSpacing: 0 }}>{tr("No first frame: one is made from your cast, in the clip's opening pose.")}</div>}
         </div>
 
         <div className="rail-section">
-          <div style={{ display: 'flex', justifyContent: 'space-between' }}><span className="label">Hold to the clip</span><span className="mono dim" style={{ fontSize: 12 }}>{Math.round(strength * 100)}%</span></div>
+          <div style={{ display: 'flex', justifyContent: 'space-between' }}><span className="label">{tr("Hold to the clip")}</span><span className="mono dim" style={{ fontSize: 12 }}>{Math.round(strength * 100)}%</span></div>
           <input type="range" min={0.4} max={1} step={0.05} value={strength} onChange={(e) => setStrength(Number(e.target.value))} style={{ accentColor: 'var(--accent)' }} />
         </div>
 
@@ -193,12 +194,12 @@ export default function MirrorPage() {
           <span className="chip"><Icon name="clock" size={14} />{seconds}s</span>
           <TierChip app="mirror" value={res} onChange={setRes} />
           <Stepper value={count} min={1} max={4} onChange={setCount} fmt={(v) => `${v}/4`} />
-          <span className="chip" style={{ gap: 10 }}><Icon name="audio" size={14} />Sound <Switch on={audio} onChange={setAudio} label="sound" /></span>
+          <span className="chip" style={{ gap: 10 }}><Icon name="audio" size={14} />{tr("Sound ")}<Switch on={audio} onChange={setAudio} label={tr("sound")} /></span>
         </div>
 
         <button type="button" className="generate" style={{ marginTop: 'auto' }} disabled={!!busy || !clip || !prompt.trim()} onClick={() => void go()}>
-          <span>{busy ?? 'Mirror it'}</span>
-          <span className="cost">{size.w}x{size.h}{est ? ` · ${fmtSeconds(est * count)}` : ' · LTX-2.5 + IC-LoRA'}</span>
+          <span>{tr(busy) ?? tr('Mirror it')}</span>
+          <span className="cost">{size.w}x{size.h}{est ? ` · ${fmtSeconds(est * count)}` : tr(' · LTX-2.5 + IC-LoRA')}</span>
         </button>
         </>}
       </aside>
@@ -206,20 +207,20 @@ export default function MirrorPage() {
       <section className="canvas">
         <div className="canvas-head">
           <div className="tabs" style={{ borderBottom: 0 }}>
-            <button type="button" className={!compareTake ? 'on' : ''} onClick={() => setCompare(null)}>Takes</button>
-            {compareTake && <button type="button" className="on">Compare</button>}
+            <button type="button" className={!compareTake ? 'on' : ''} onClick={() => setCompare(null)}>{tr("Takes")}</button>
+            {compareTake && <button type="button" className="on">{tr("Compare")}</button>}
           </div>
-          {compareTake && <button type="button" className="icon-btn" onClick={() => setCompare(null)} aria-label="close"><Icon name="x" /></button>}
+          {compareTake && <button type="button" className="icon-btn" onClick={() => setCompare(null)} aria-label={tr("close")}><Icon name="x" /></button>}
         </div>
         <div className="canvas-body">
           {compareTake ? <Compare take={compareTake} onOpen={() => setViewing(compareTake.id)} /> : takes.length === 0 ? (
             <div className="hero-empty">
-              <div className="label" style={{ marginBottom: 14 }}>Same moves, new everything</div>
-              <div className="display" style={{ fontSize: 'clamp(34px,4.6vw,60px)' }}>You act it. <span className="hl">It becomes them.</span></div>
+              <div className="label" style={{ marginBottom: 14 }}>{tr("Same moves, new everything")}</div>
+              <div className="display" style={{ fontSize: 'clamp(34px,4.6vw,60px)' }}>{tr("You act it. ")}<span className="hl">{tr("It becomes them.")}</span></div>
               <div className="steps3">
-                <div><span className="label">01</span><b>Film the move</b><span className="dim">Any phone clip. Frame it like the final shot.</span></div>
-                <div><span className="label">02</span><b>Say who and where</b><span className="dim">Add a first frame to lock the look.</span></div>
-                <div><span className="label">03</span><b>Mirror it</b><span className="dim">Your timing, on a new character.</span></div>
+                <div><span className="label">01</span><b>{tr("Film the move")}</b><span className="dim">{tr("Any phone clip. Frame it like the final shot.")}</span></div>
+                <div><span className="label">02</span><b>{tr("Say who and where")}</b><span className="dim">{tr("Add a first frame to lock the look.")}</span></div>
+                <div><span className="label">03</span><b>{tr("Mirror it")}</b><span className="dim">{tr("Your timing, on a new character.")}</span></div>
               </div>
             </div>
           ) : (
@@ -259,8 +260,8 @@ export function DropWell(p: { accept: string; onFile: (f: File) => void; icon: s
       onClick={() => input.current?.click()} {...zone.props}>
       <input ref={input} type="file" accept={p.accept} hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) p.onFile(f); }} />
       {!p.compact && <div className="well-icons"><span><Icon name={p.icon} /></span></div>}
-      <div style={{ fontWeight: 600, color: 'var(--text)' }}>{p.title}</div>
-      {p.sub && <div style={{ fontSize: 12, marginTop: 2 }}>{p.sub}</div>}
+      <div style={{ fontWeight: 600, color: 'var(--text)' }}>{tr(p.title)}</div>
+      {p.sub && <div style={{ fontSize: 12, marginTop: 2 }}>{tr(p.sub)}</div>}
     </div>
   );
 }
@@ -308,22 +309,22 @@ export function Compare({ take, onOpen }: { take: Take; onOpen?: () => void }) {
   return (
     <div style={{ maxWidth: 1400, margin: '0 auto' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12, flexWrap: 'wrap' }}>
-        <b>{outLabel}</b>
-        <span className="dim" style={{ fontSize: 12.5 }}>Take #{take.id}{seconds ? ` · ${seconds}s` : ''}{s.width ? ` · ${s.width}x${s.height}` : ''}</span>
+        <b>{tr(outLabel)}</b>
+        <span className="dim" style={{ fontSize: 12.5 }}>{tr("Take #")}{take.id}{seconds ? ` · ${seconds}s` : ''}{s.width ? ` · ${s.width}x${s.height}` : ''}</span>
         <div className="seg" style={{ marginLeft: 'auto', width: 190 }}>
-          <button type="button" className={mode === 'side' ? 'on' : ''} onClick={() => setMode('side')}>Side by side</button>
-          <button type="button" className={mode === 'wipe' ? 'on' : ''} onClick={() => setMode('wipe')}>Wipe</button>
+          <button type="button" className={mode === 'side' ? 'on' : ''} onClick={() => setMode('side')}>{tr("Side by side")}</button>
+          <button type="button" className={mode === 'wipe' ? 'on' : ''} onClick={() => setMode('wipe')}>{tr("Wipe")}</button>
         </div>
-        {onOpen && <button type="button" className="btn sm" onClick={onOpen}><Icon name="grid" size={13} />Open</button>}
-        <a className="btn sm" href={downloadUrl(take.id)}><Icon name="download" size={13} />Download</a>
-        <button type="button" className="btn sm" onClick={() => void recreate(take)}><Icon name="redo" size={13} />Retry</button>
+        {onOpen && <button type="button" className="btn sm" onClick={onOpen}><Icon name="grid" size={13} />{tr("Open")}</button>}
+        <a className="btn sm" href={downloadUrl(take.id)}><Icon name="download" size={13} />{tr("Download")}</a>
+        <button type="button" className="btn sm" onClick={() => void recreate(take)}><Icon name="redo" size={13} />{tr("Retry")}</button>
       </div>
       {mode === 'side' ? (
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
           {[['Your clip', src, inputUrl(s.sourceVideo), false], [outLabel, out, mediaUrl(take.id), true]].map(([label, ref, url, master]) => (
-            <div key={label as string} style={{ position: 'relative', aspectRatio: `${s.width || 16} / ${s.height || 9}`, borderRadius: 14, overflow: 'hidden', background: '#000' }}>
+            <div key={tr(label as string)} style={{ position: 'relative', aspectRatio: `${s.width || 16} / ${s.height || 9}`, borderRadius: 14, overflow: 'hidden', background: '#000' }}>
               {video(ref as React.RefObject<HTMLVideoElement | null>, url as string, master as boolean)}
-              <span className="badge on-media" style={{ position: 'absolute', top: 12, left: 12 }}>{label as string}</span>
+              <span className="badge on-media" style={{ position: 'absolute', top: 12, left: 12 }}>{tr(label as string)}</span>
             </div>
           ))}
         </div>
@@ -334,8 +335,8 @@ export function Compare({ take, onOpen }: { take: Take; onOpen?: () => void }) {
           {video(out, mediaUrl(take.id), true, { position: 'absolute', inset: 0 })}
           {video(src, inputUrl(s.sourceVideo), false, { position: 'absolute', inset: 0, clipPath: `inset(0 ${100 - x}% 0 0)` })}
           <div style={{ position: 'absolute', top: 0, bottom: 0, left: `${x}%`, width: 2, background: 'var(--accent)', transform: 'translateX(-1px)' }} />
-          <span className="badge on-media" style={{ position: 'absolute', top: 12, left: 12 }}>Your clip</span>
-          <span className="badge on-media" style={{ position: 'absolute', top: 12, right: 12 }}>{outLabel}</span>
+          <span className="badge on-media" style={{ position: 'absolute', top: 12, left: 12 }}>{tr("Your clip")}</span>
+          <span className="badge on-media" style={{ position: 'absolute', top: 12, right: 12 }}>{tr(outLabel)}</span>
         </div>
       )}
       {s.userPrompt && <div className="dim" style={{ marginTop: 10, fontSize: 12.5 }}>{s.userPrompt}</div>}

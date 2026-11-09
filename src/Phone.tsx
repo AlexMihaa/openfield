@@ -3,6 +3,7 @@
  * The phone films or picks a clip and uploads it; the clip lands here over the
  * live socket and goes straight into the page's clip slot via onClip.
  */
+import { tr } from './i18n';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import qrcode from 'qrcode-generator';
 import { api, type PhoneEvent, type PhoneSession } from './api';
@@ -66,7 +67,7 @@ export function PhoneDrop({ onClip }: { onClip: (token: string, name: string) =>
   if (phase.kind === 'off' || phase.kind === 'opening') {
     return (
       <button type="button" className="btn sm phone-btn" disabled={phase.kind === 'opening'} onClick={() => void start()}>
-        <Icon name="phone" size={14} />{phase.kind === 'opening' ? 'Opening a link...' : 'Use your phone'}
+        <Icon name="phone" size={14} />{phase.kind === 'opening' ? tr('Opening a link...') : tr('Use your phone')}
       </button>
     );
   }
@@ -74,10 +75,10 @@ export function PhoneDrop({ onClip }: { onClip: (token: string, name: string) =>
   if (phase.kind !== 'open') {
     return (
       <div className="phone-panel">
-        <div className="dim" style={{ fontSize: 12.5 }}>{phase.text}</div>
+        <div className="dim" style={{ fontSize: 12.5 }}>{tr(phase.text)}</div>
         <div style={{ display: 'flex', gap: 6 }}>
-          <button type="button" className="btn sm accent" onClick={() => void start()}>New code</button>
-          <button type="button" className="btn sm ghost" onClick={() => setPhase({ kind: 'off' })}>Close</button>
+          <button type="button" className="btn sm accent" onClick={() => void start()}>{tr("New code")}</button>
+          <button type="button" className="btn sm ghost" onClick={() => setPhase({ kind: 'off' })}>{tr("Close")}</button>
         </div>
       </div>
     );
@@ -93,13 +94,13 @@ export function PhoneDrop({ onClip }: { onClip: (token: string, name: string) =>
       <div className="phone-status">
         <span className={`dot ${step === 'waiting' ? 'busy' : 'up'}`} />
         <span>
-          {step === 'waiting' && 'Scan with your phone camera'}
-          {step === 'opened' && 'Phone connected. Film the move.'}
-          {step === 'receiving' && `Receiving the clip${bytes ? ` · ${(bytes / 1048576).toFixed(0)} MB` : '...'}`}
+          {step === 'waiting' && tr('Scan with your phone camera')}
+          {step === 'opened' && tr('Phone connected. Film the move.')}
+          {step === 'receiving' && tr("Receiving the clip{0}", { 0: bytes ? ` · ${(bytes / 1048576).toFixed(0)} MB` : '...' })}
         </span>
         <span className="mono dim" style={{ marginLeft: 'auto' }}>{clock}</span>
       </div>
-      <div className="dim" style={{ fontSize: 12 }}>Same Wi-Fi as this computer. The code works once, for 10 minutes.</div>
+      <div className="dim" style={{ fontSize: 12 }}>{tr("Same Wi-Fi as this computer. The code works once, for 10 minutes.")}</div>
 
       {net.warning ? (
         <div className="phone-warn">
@@ -108,15 +109,14 @@ export function PhoneDrop({ onClip }: { onClip: (token: string, name: string) =>
         </div>
       ) : net.commands.length > 0 && (
         <details className="phone-help">
-          <summary>Phone can't connect?</summary>
+          <summary>{tr("Phone can't connect?")}</summary>
           <div className="dim" style={{ fontSize: 12, margin: '6px 0' }}>
-            Windows may be blocking the port. Allow it once from an elevated PowerShell:
-          </div>
+            {tr("Windows may be blocking the port. Allow it once from an elevated PowerShell:")}</div>
           <Commands lines={net.commands} />
         </details>
       )}
 
-      <button type="button" className="btn sm ghost" onClick={() => setPhase({ kind: 'off' })}>Cancel</button>
+      <button type="button" className="btn sm ghost" onClick={() => setPhase({ kind: 'off' })}>{tr("Cancel")}</button>
     </div>
   );
 }
@@ -125,7 +125,7 @@ function Commands({ lines }: { lines: string[] }) {
   return (
     <div className="phone-cmds">
       {lines.map((l) => (
-        <button key={l} type="button" title="Copy" onClick={() => void navigator.clipboard?.writeText(l).then(() => toast('Copied'))}>
+        <button key={l} type="button" title={tr("Copy")} onClick={() => void navigator.clipboard?.writeText(l).then(() => toast(tr('Copied')))}>
           <code>{l}</code>
         </button>
       ))}
@@ -146,7 +146,7 @@ function Qr({ text }: { text: string }) {
   }, [text]);
   const q = 4; // quiet zone, in modules
   return (
-    <svg viewBox={`${-q} ${-q} ${n + 2 * q} ${n + 2 * q}`} shapeRendering="crispEdges" role="img" aria-label="QR code for the phone link">
+    <svg viewBox={`${-q} ${-q} ${n + 2 * q} ${n + 2 * q}`} shapeRendering="crispEdges" role="img" aria-label={tr("QR code for the phone link")}>
       <rect x={-q} y={-q} width={n + 2 * q} height={n + 2 * q} fill="#efeae0" />
       <path d={d} fill="#0b0a09" />
     </svg>

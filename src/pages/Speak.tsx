@@ -4,6 +4,7 @@
  * frozen and only the picture is generated, so lips and motion follow it.
  * Add sound: a clip's frames are frozen and only the soundtrack is generated.
  */
+import { tr } from '../i18n';
 import { useState } from 'react';
 import { api } from '../api';
 import { SOUND_PROMPT, SPEAK_PROMPT, compilePrompt } from '../catalog';
@@ -43,7 +44,7 @@ export default function SpeakPage() {
   // A drop anywhere on the page goes by what it is: a still is the face, a sound
   // file is the voice (both Speak), a video is the clip for Add sound.
   usePageDrop(
-    speak ? 'Drop a face image or a sound file. A clip opens Add sound.' : 'Drop a clip to add sound to it',
+    speak ? tr('Drop a face image or a sound file. A clip opens Add sound.') : tr('Drop a clip to add sound to it'),
     async (files) => {
       for (const f of files.slice(0, 3)) {
         const kind = fileKind(f);
@@ -69,12 +70,12 @@ export default function SpeakPage() {
   const ready = speak ? (!!face || castFace) && !!voice : clip?.kind === 'video';
 
   async function go() {
-    setBusy('Queuing...');
+    setBusy(tr('Queuing...'));
     try {
       const r = speak ? await api.generate(speakBody()) : await api.generate(soundBody());
-      toast(`Queued ${r.takeIds.length} take${r.takeIds.length > 1 ? 's' : ''}`);
+      toast(tr("Queued takes: {0}", { 0: r.takeIds.length }));
     } catch (e) {
-      toast(e instanceof Error ? e.message : 'failed', true);
+      toast(e instanceof Error ? e.message : tr('failed'), true);
     } finally {
       setBusy(null);
     }
@@ -111,32 +112,32 @@ export default function SpeakPage() {
     <div className="rail-layout" style={{ gridTemplateColumns: '360px 1fr' }}>
       <aside className="rail">
         <div className="tabs">
-          <button type="button" className={speak ? 'on' : ''} onClick={() => setParams({ mode: null })}>Speak</button>
-          <button type="button" className={!speak ? 'on' : ''} onClick={() => setParams({ mode: 'sound' })}>Add sound</button>
+          <button type="button" className={speak ? 'on' : ''} onClick={() => setParams({ mode: null })}>{tr("Speak")}</button>
+          <button type="button" className={!speak ? 'on' : ''} onClick={() => setParams({ mode: 'sound' })}>{tr("Add sound")}</button>
         </div>
 
         {speak ? (
           <>
-            <SourceSlot label="Face" value={face} onChange={setFace} accept={['image']} title="Add a face" sub="Head and shoulders, facing the camera, mouth visible." />
-            <SourceSlot label="Voice" value={voice} onChange={setVoice} accept={['audio']} title="Add a sound file" sub="WAV or MP3, up to 10 seconds are used. Speech, singing or music." />
+            <SourceSlot label={tr("Face")} value={face} onChange={setFace} accept={['image']} title={tr("Add a face")} sub="Head and shoulders, facing the camera, mouth visible." />
+            <SourceSlot label={tr("Voice")} value={voice} onChange={setVoice} accept={['audio']} title={tr("Add a sound file")} sub="WAV or MP3, up to 10 seconds are used. Speech, singing or music." />
             <div className="rail-section">
-              <div className="label">What they say · optional</div>
-              <textarea className="prompt" rows={2} value={words} onChange={(e) => setWords(e.target.value)} placeholder="The words in the recording. It helps the mouth shapes." />
+              <div className="label">{tr("What they say · optional")}</div>
+              <textarea className="prompt" rows={2} value={words} onChange={(e) => setWords(e.target.value)} placeholder={tr("The words in the recording. It helps the mouth shapes.")} />
             </div>
             <div className="rail-section">
-              <div className="label">Direction · optional</div>
-              <MentionBox className="prompt" rows={2} value={prompt} onChange={setPrompt} placeholder="A tired old sailor talks quietly, rain on his hood. Type @ for your cast." />
-              {!face && castFace && <div className="label" style={{ textTransform: 'none', letterSpacing: 0 }}>No face added: a portrait of your cast member is made first and used as the face.</div>}
+              <div className="label">{tr("Direction · optional")}</div>
+              <MentionBox className="prompt" rows={2} value={prompt} onChange={setPrompt} placeholder={tr("A tired old sailor talks quietly, rain on his hood. Type @ for your cast.")} />
+              {!face && castFace && <div className="label" style={{ textTransform: 'none', letterSpacing: 0 }}>{tr("No face added: a portrait of your cast member is made first and used as the face.")}</div>}
             </div>
           </>
         ) : (
           <>
-            <SourceSlot label="Clip" value={clip} onChange={setClip} accept={['video']} title="Add a clip" sub="The picture stays exactly as it is. Up to 20 seconds." />
+            <SourceSlot label={tr("Clip")} value={clip} onChange={setClip} accept={['video']} title={tr("Add a clip")} sub="The picture stays exactly as it is. Up to 20 seconds." />
             <div className="rail-section">
-              <div className="label">What it should sound like · optional</div>
-              <textarea className="prompt" rows={4} value={prompt} onChange={(e) => setPrompt(e.target.value)} placeholder="Hammer strikes on an anvil, a roaring forge, hissing sparks." />
+              <div className="label">{tr("What it should sound like · optional")}</div>
+              <textarea className="prompt" rows={4} value={prompt} onChange={(e) => setPrompt(e.target.value)} placeholder={tr("Hammer strikes on an anvil, a roaring forge, hissing sparks.")} />
             </div>
-            {clip && clip.kind === 'video' && <div className="dim" style={{ fontSize: 12.5 }}>Any sound the clip has now is replaced.</div>}
+            {clip && clip.kind === 'video' && <div className="dim" style={{ fontSize: 12.5 }}>{tr("Any sound the clip has now is replaced.")}</div>}
           </>
         )}
 
@@ -144,36 +145,36 @@ export default function SpeakPage() {
           <span className="chip"><Icon name="clock" size={14} />{seconds.toFixed(1)}s</span>
           {speak
             ? <TierChip app="speak" value={res} onChange={setRes} />
-            : <span className="chip"><Icon name="aspect" size={14} />{clip?.w ? `${clip.w}x${clip.h}` : 'clip size'}</span>}
+            : <span className="chip"><Icon name="aspect" size={14} />{clip?.w ? `${clip.w}x${clip.h}` : tr('clip size')}</span>}
           <Stepper value={count} min={1} max={4} onChange={setCount} fmt={(v) => `${v}/4`} />
         </div>
 
         <button type="button" className="generate" style={{ marginTop: 'auto' }} disabled={!!busy || !ready} onClick={() => void go()}>
-          <span>{busy ?? (speak ? 'Speak' : 'Add sound')}</span>
-          <span className="cost">{speak ? `${size.w}x${size.h}${est ? ` · ${fmtSeconds(est * count)}` : ''}` : est ? fmtSeconds(est * count) : 'LTX-2.5 audio + video'}</span>
+          <span>{tr(busy) ?? (speak ? tr('Speak') : tr('Add sound'))}</span>
+          <span className="cost">{speak ? `${size.w}x${size.h}${est ? ` · ${fmtSeconds(est * count)}` : ''}` : est ? fmtSeconds(est * count) : tr('LTX-2.5 audio + video')}</span>
         </button>
       </aside>
 
       <section className="canvas">
         <div className="canvas-head">
-          <div className="tabs" style={{ borderBottom: 0 }}><button type="button" className="on">Takes</button></div>
+          <div className="tabs" style={{ borderBottom: 0 }}><button type="button" className="on">{tr("Takes")}</button></div>
         </div>
         <div className="canvas-body">
           {takes.length === 0 ? (
             <div className="hero-empty">
-              <div className="label" style={{ marginBottom: 14 }}>{speak ? 'Sound in, picture out' : 'Picture in, sound out'}</div>
+              <div className="label" style={{ marginBottom: 14 }}>{speak ? tr('Sound in, picture out') : tr('Picture in, sound out')}</div>
               <div className="display" style={{ fontSize: 'clamp(34px,4.6vw,60px)' }}>
-                {speak ? <>Give a face <span className="hl">your voice</span></> : <>Every take <span className="hl">gets a soundtrack</span></>}
+                {speak ? <>{tr("Give a face ")}<span className="hl">{tr("your voice")}</span></> : <>{tr("Every take ")}<span className="hl">{tr("gets a soundtrack")}</span></>}
               </div>
               <div className="steps3">
                 {speak ? <>
-                  <div><span className="label">01</span><b>Add a face</b><span className="dim">A still from Image, or your own photo.</span></div>
-                  <div><span className="label">02</span><b>Add the voice</b><span className="dim">A recording of speech, a song, a beat.</span></div>
-                  <div><span className="label">03</span><b>Speak</b><span className="dim">Your audio stays untouched; the picture moves to it.</span></div>
+                  <div><span className="label">01</span><b>{tr("Add a face")}</b><span className="dim">{tr("A still from Image, or your own photo.")}</span></div>
+                  <div><span className="label">02</span><b>{tr("Add the voice")}</b><span className="dim">{tr("A recording of speech, a song, a beat.")}</span></div>
+                  <div><span className="label">03</span><b>{tr("Speak")}</b><span className="dim">{tr("Your audio stays untouched; the picture moves to it.")}</span></div>
                 </> : <>
-                  <div><span className="label">01</span><b>Pick a silent take</b><span className="dim">Or any clip you want to re-sound.</span></div>
-                  <div><span className="label">02</span><b>Describe the sound</b><span className="dim">Or leave it empty and let the picture decide.</span></div>
-                  <div><span className="label">03</span><b>Add sound</b><span className="dim">The frames are untouched; only audio is made.</span></div>
+                  <div><span className="label">01</span><b>{tr("Pick a silent take")}</b><span className="dim">{tr("Or any clip you want to re-sound.")}</span></div>
+                  <div><span className="label">02</span><b>{tr("Describe the sound")}</b><span className="dim">{tr("Or leave it empty and let the picture decide.")}</span></div>
+                  <div><span className="label">03</span><b>{tr("Add sound")}</b><span className="dim">{tr("The frames are untouched; only audio is made.")}</span></div>
                 </>}
               </div>
             </div>

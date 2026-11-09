@@ -5,6 +5,7 @@
  * Each result is an ordinary take whose file is a GLB, so the Library, the
  * Viewer and the Stage all read it from /api/media/<take>.
  */
+import { tr } from '../i18n';
 import { Suspense, lazy, useEffect, useState } from 'react';
 import { api, downloadUrl, mediaUrl, posterUrl, subjectUrl, type Take } from '../api';
 import { OBJECT_DETAIL } from '../catalog';
@@ -40,7 +41,7 @@ export default function ObjectPage() {
 
   // Deep link from the Viewer's Make 3D: /object?take=44 preloads that still.
   useTakeParam(params.get('take'), (s) => { setSource(s); setParams({ take: null }); });
-  usePageDrop('Drop a still to make it 3D', (files) => {
+  usePageDrop(tr('Drop a still to make it 3D'), (files) => {
     void (async () => { const s = await loadFile(files[0], ['image']); if (s) setSource(s); })();
   });
 
@@ -60,7 +61,7 @@ export default function ObjectPage() {
       });
       setCut({ takeId: r.takeIds[0], forSource: sourceKey });
     } catch (e) {
-      toast(e instanceof Error ? e.message : 'failed', true);
+      toast(e instanceof Error ? e.message : tr('failed'), true);
     } finally {
       setCutting(false);
     }
@@ -68,7 +69,7 @@ export default function ObjectPage() {
 
   async function go() {
     if (!source) return;
-    setBusy('Queuing...');
+    setBusy(tr('Queuing...'));
     try {
       const r = await api.generate({
         kind: 'object', app: 'object', quality, count,
@@ -79,9 +80,9 @@ export default function ObjectPage() {
         userPrompt: source.prompt ? `3D: ${source.prompt}` : `3D from ${source.name}`,
       });
       setSelected(r.takeIds[0]);
-      toast(`Building ${r.takeIds.length} model${r.takeIds.length > 1 ? 's' : ''}`);
+      toast(tr("Building models: {0}", { 0: r.takeIds.length }));
     } catch (e) {
-      toast(e instanceof Error ? e.message : 'failed', true);
+      toast(e instanceof Error ? e.message : tr('failed'), true);
     } finally {
       setBusy(null);
     }
@@ -92,18 +93,18 @@ export default function ObjectPage() {
     <div className="rail-layout" style={{ gridTemplateColumns: '372px 1fr' }}>
       <aside className="rail">
         <Spill src={presetClip('turntable')} video />
-        <div className="display" style={{ fontSize: 26 }}>Object</div>
-        <div className="dim" style={{ fontSize: 12.5, marginTop: -4 }}>One still becomes a textured 3D model you can turn, download as GLB and drop into a scene. TRELLIS.2, on your GPU.</div>
+        <div className="display" style={{ fontSize: 26 }}>{tr("Object")}</div>
+        <div className="dim" style={{ fontSize: 12.5, marginTop: -4 }}>{tr("One still becomes a textured 3D model you can turn, download as GLB and drop into a scene. TRELLIS.2, on your GPU.")}</div>
 
-        <SourceSlot label="Still" value={source} onChange={setSource} accept={['image']}
-          title="Add a still of the thing" sub="One subject, whole in frame, on a plain background works best." />
+        <SourceSlot label={tr("Still")} value={source} onChange={setSource} accept={['image']}
+          title={tr("Add a still of the thing")} sub="One subject, whole in frame, on a plain background works best." />
 
         <div className="rail-section">
-          <div className="label">Detail</div>
+          <div className="label">{tr("Detail")}</div>
           <div className="seg">
-            {OBJECT_DETAIL.map((x) => <button key={x.id} type="button" className={quality === x.id ? 'on' : ''} onClick={() => setQuality(x.id)}>{x.label}</button>)}
+            {OBJECT_DETAIL.map((x) => <button key={x.id} type="button" className={quality === x.id ? 'on' : ''} onClick={() => setQuality(x.id)}>{tr(x.label)}</button>)}
           </div>
-          <div className="dim" style={{ fontSize: 12 }}>{q.note}</div>
+          <div className="dim" style={{ fontSize: 12 }}>{tr(q.note)}</div>
         </div>
 
         {source && (
@@ -111,60 +112,60 @@ export default function ObjectPage() {
             {cutReady && (
               <>
                 <div className="seg">
-                  <button type="button" className={!showCut ? 'on' : ''} onClick={() => setShowCut(false)}>Original</button>
-                  <button type="button" className={showCut ? 'on' : ''} onClick={() => setShowCut(true)}>Cut out</button>
+                  <button type="button" className={!showCut ? 'on' : ''} onClick={() => setShowCut(false)}>{tr("Original")}</button>
+                  <button type="button" className={showCut ? 'on' : ''} onClick={() => setShowCut(true)}>{tr("Cut out")}</button>
                 </div>
                 {showCut && (
                   <div className="checker" style={{ borderRadius: 12, overflow: 'hidden', aspectRatio: '4 / 3', display: 'grid', placeItems: 'center' }}>
-                    <img src={mediaUrl(cut!.takeId)} alt="The subject with the background removed" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', display: 'block' }} />
+                    <img src={mediaUrl(cut!.takeId)} alt={tr("The subject with the background removed")} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', display: 'block' }} />
                   </div>
                 )}
               </>
             )}
             <button type="button" className="btn sm" disabled={cutting || (!!cut && cut.forSource === sourceKey && !cutReady && cutTake?.status !== 'failed')} onClick={() => void removeBackground()}>
               <Icon name="sparkle" size={13} />
-              {cutting || (cut && cut.forSource === sourceKey && !cutReady && cutTake?.status !== 'failed') ? 'Removing the background...' : cutReady ? 'Remove the background again' : 'Remove background'}
+              {cutting || (cut && cut.forSource === sourceKey && !cutReady && cutTake?.status !== 'failed') ? tr('Removing the background...') : cutReady ? tr('Remove the background again') : tr('Remove background')}
             </button>
-            {cutReady && <div className="dim" style={{ fontSize: 12 }}>{showCut ? 'Make 3D builds exactly this cutout.' : 'Make 3D uses the original picture.'}</div>}
+            {cutReady && <div className="dim" style={{ fontSize: 12 }}>{showCut ? tr('Make 3D builds exactly this cutout.') : tr('Make 3D uses the original picture.')}</div>}
           </div>
         )}
 
         {!usingCut && <div className="rail-section">
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
-            <span className="dim" style={{ fontSize: 12.5 }}>Cut the subject out first</span>
-            <Switch on={cutout} onChange={setCutout} label="cut the subject out first" />
+            <span className="dim" style={{ fontSize: 12.5 }}>{tr("Cut the subject out first")}</span>
+            <Switch on={cutout} onChange={setCutout} label={tr("cut the subject out first")} />
           </div>
           <div className="label" style={{ textTransform: 'none', letterSpacing: 0 }}>
-            {cutout ? 'BiRefNet finds the subject and drops the background.' : 'Uses the picture\'s own transparency. Turn this off only for a PNG that is already cut out.'}
+            {cutout ? tr('BiRefNet finds the subject and drops the background.') : tr('Uses the picture\'s own transparency. Turn this off only for a PNG that is already cut out.')}
           </div>
         </div>}
 
         <div className="chip-row" style={{ alignItems: 'center' }}>
           <Stepper value={count} min={1} max={4} onChange={setCount} fmt={(v) => `${v}/4`} />
-          <span className="dim" style={{ fontSize: 12 }}>Each take uses a new seed.</span>
+          <span className="dim" style={{ fontSize: 12 }}>{tr("Each take uses a new seed.")}</span>
         </div>
 
         <button type="button" className="generate" style={{ marginTop: 'auto' }} disabled={!!busy || !source} onClick={() => void go()}>
-          <span>{busy ?? (count > 1 ? `Make 3D · ${count}` : 'Make 3D')}</span>
-          <span className="cost">{est ? fmtSeconds(est * count) : 'TRELLIS.2'}</span>
+          <span>{tr(busy) ?? (count > 1 ? tr("Make 3D · {0}", { 0: count }) : tr('Make 3D'))}</span>
+          <span className="cost">{est ? fmtSeconds(est * count) : tr('TRELLIS.2')}</span>
         </button>
       </aside>
 
       <section className="canvas">
         <div className="canvas-head">
           <div className="tabs" style={{ borderBottom: 0 }}>
-            <button type="button" className="on">Models</button>
+            <button type="button" className="on">{tr("Models")}</button>
           </div>
         </div>
         <div className="canvas-body">
           {takes.length === 0 ? (
             <div className="hero-empty">
               <div className="object-hero"><video src={presetClip('turntable')} muted loop autoPlay playsInline /></div>
-              <div className="display" style={{ fontSize: 'clamp(34px,4.6vw,60px)' }}>A still <span className="hl">in the round</span></div>
+              <div className="display" style={{ fontSize: 'clamp(34px,4.6vw,60px)' }}>{tr("A still ")}<span className="hl">{tr("in the round")}</span></div>
               <div className="steps3">
-                <div><span className="label">01</span><b>Add a still</b><span className="dim">Or press Make 3D on any image in the Library.</span></div>
-                <div><span className="label">02</span><b>Pick the detail</b><span className="dim">Draft to check the shape, High for the keeper.</span></div>
-                <div><span className="label">03</span><b>Turn it</b><span className="dim">Drag to orbit, download the GLB, block it into a scene.</span></div>
+                <div><span className="label">01</span><b>{tr("Add a still")}</b><span className="dim">{tr("Or press Make 3D on any image in the Library.")}</span></div>
+                <div><span className="label">02</span><b>{tr("Pick the detail")}</b><span className="dim">{tr("Draft to check the shape, High for the keeper.")}</span></div>
+                <div><span className="label">03</span><b>{tr("Turn it")}</b><span className="dim">{tr("Drag to orbit, download the GLB, block it into a scene.")}</span></div>
               </div>
             </div>
           ) : (
@@ -197,19 +198,18 @@ function ObjectFocus({ take, look, onLook, onOpen }: { take: Take; look: ModelLo
         <ModelView src={mediaUrl(take.id)} poster={posterUrl(take.id)} look={look} />
       </Suspense>
       <div className="object-side">
-        <div className="label">From</div>
-        <img className="object-from" src={subjectUrl(take.id)} alt="" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+        <div className="label">{tr("From")}</div>
+        <img className="object-from" src={subjectUrl(take.id)} alt={""} onError={(e) => { e.currentTarget.style.display = 'none'; }} />
         <div className="seg">
           {(['lit', 'clay', 'wire'] as const).map((l) => (
-            <button key={l} type="button" className={look === l ? 'on' : ''} onClick={() => onLook(l)}>{l === 'lit' ? 'Textured' : l === 'clay' ? 'Clay' : 'Wire'}</button>
+            <button key={l} type="button" className={look === l ? 'on' : ''} onClick={() => onLook(l)}>{l === 'lit' ? tr('Textured') : l === 'clay' ? tr('Clay') : tr('Wire')}</button>
           ))}
         </div>
         <div className="dim" style={{ fontSize: 12 }}>
-          {s.quality === 'quality' ? 'High' : 'Draft'} · up to {Number(s.faces).toLocaleString()} faces · {s.texture}px textures
-          {take.render_seconds ? ` · ${Math.round(take.render_seconds)}s` : ''}
+          {s.quality === 'quality' ? tr('High') : tr('Draft')} {tr("· up to ")}{Number(s.faces).toLocaleString()} {tr("faces · ")}{s.texture}{tr("px textures")}{take.render_seconds ? ` · ${Math.round(take.render_seconds)}s` : ''}
         </div>
-        <a className="btn sm accent" href={downloadUrl(take.id)}><Icon name="download" size={14} />Download GLB</a>
-        <button type="button" className="btn sm" onClick={onOpen}><Icon name="sparkle" size={14} />Open</button>
+        <a className="btn sm accent" href={downloadUrl(take.id)}><Icon name="download" size={14} />{tr("Download GLB")}</a>
+        <button type="button" className="btn sm" onClick={onOpen}><Icon name="sparkle" size={14} />{tr("Open")}</button>
       </div>
     </div>
   );

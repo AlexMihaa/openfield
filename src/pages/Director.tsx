@@ -5,6 +5,7 @@
  * Frame makes hero stills, Shot films one, Scene plans a shot list with a
  * local LLM and shoots it into one cut.
  */
+import { tr } from '../i18n';
 import { useEffect, useRef, useState } from 'react';
 import { api, inputUrl, mediaUrl, posterUrl, takeAsInput, uploadFile, type ScenePlan, type Take } from '../api';
 import { usePageDrop } from '../drop';
@@ -104,13 +105,13 @@ export default function DirectorPage() {
     setCount(1);
   }
 
-  usePageDrop('Drop an image to shoot from it', async (files) => {
+  usePageDrop(tr('Drop an image to shoot from it'), async (files) => {
     const f = files.find((x) => x.type.startsWith('image/'));
-    if (!f) { toast('Director shoots from a still. Drop an image.', true); return; }
+    if (!f) { toast(tr('Director shoots from a still. Drop an image.'), true); return; }
     try {
       setHero({ token: await uploadFile(f), take: 0 });
       setParams({ mode: 'video' });
-    } catch (e) { toast(e instanceof Error ? e.message : 'upload failed', true); }
+    } catch (e) { toast(e instanceof Error ? e.message : tr('upload failed'), true); }
   });
 
   async function go() {
@@ -120,9 +121,9 @@ export default function DirectorPage() {
       const r = mode === 'image'
         ? await api.generate({ ...common, kind: 'still', model: imageModel, quality: 'quality' })
         : await api.generate({ ...common, kind: 'video', videoModel: 'ltx25', seconds, withAudio: audio, startImage: hero?.token, preset: move, presetName: presetById(move).name, ramp });
-      toast(`Queued ${r.takeIds.length} ${mode === 'image' ? 'frame' : 'shot'}${r.takeIds.length > 1 ? 's' : ''}`);
+      toast(tr("Queued: {0} ({1})", { 0: r.takeIds.length, 1: tr(mode === 'image' ? 'frame' : 'shot') }));
     } catch (e) {
-      toast(e instanceof Error ? e.message : 'failed', true);
+      toast(e instanceof Error ? e.message : tr('failed'), true);
     } finally {
       setBusy(false);
     }
@@ -134,7 +135,7 @@ export default function DirectorPage() {
   useEffect(() => () => clearTimeout(planTimer.current), []);
 
   async function plan() {
-    if (!scene.trim()) { toast('Write the scene first', true); return; }
+    if (!scene.trim()) { toast(tr('Write the scene first'), true); return; }
     try {
       const p = await api.directorPlan({ scene, shots: want || undefined, think });
       const started = Date.now();
@@ -151,7 +152,7 @@ export default function DirectorPage() {
           }
           setPlanning(null);
           setPlanLive(null);
-          if (q.status === 'failed' || !q.shots) { toast(q.error ?? 'Planning failed', true); return; }
+          if (q.status === 'failed' || !q.shots) { toast(q.error ?? tr('Planning failed'), true); return; }
           setShots(q.shots.map((s) => ({ ...s, key: newKey() })));
           setCutId(null);
           const by = q.planner === 'engine' ? 'Gemma 3 on the engine' : q.planner === 'llm' ? 'the OpenAI-compatible LLM' : q.planner === 'ollama' ? 'Ollama' : 'a sentence split (no LLM answered)';
@@ -159,18 +160,18 @@ export default function DirectorPage() {
         } catch (e) {
           setPlanning(null);
           setPlanLive(null);
-          toast(e instanceof Error ? e.message : 'Planning failed', true);
+          toast(e instanceof Error ? e.message : tr('Planning failed'), true);
         }
       };
       void poll();
     } catch (e) {
-      toast(e instanceof Error ? e.message : 'Planning failed', true);
+      toast(e instanceof Error ? e.message : tr('Planning failed'), true);
     }
   }
 
   /** Shoot every shot that has no take yet (all of them the first time), then cut. */
   async function shootAll(list = shots) {
-    if (list.length < 1) { toast('Plan or add a shot first', true); return; }
+    if (list.length < 1) { toast(tr('Plan or add a shot first'), true); return; }
     setBusy(true);
     try {
       const r = await api.directorScene({
@@ -181,9 +182,9 @@ export default function DirectorPage() {
       setCutId(r.cutId);
       setShots(list.map((s) => ({ ...s, cut: r.cutId, ...(s.cut != null && s.take ? {} : { take: undefined, hero: undefined }) })));
       const fresh = list.filter((s) => s.cut == null || !s.take).length;
-      toast(fresh ? `Shooting ${fresh} shot${fresh > 1 ? 's' : ''}, then cutting` : 'Cutting the shots');
+      toast(fresh ? tr("Shooting shots: {0}, then cutting", { 0: fresh }) : tr('Cutting the shots'));
     } catch (e) {
-      toast(e instanceof Error ? e.message : 'failed', true);
+      toast(e instanceof Error ? e.message : tr('failed'), true);
     } finally {
       setBusy(false);
     }
@@ -216,97 +217,96 @@ export default function DirectorPage() {
     <div className="rail-layout" style={{ gridTemplateColumns: '380px 1fr' }}>
       <aside className="rail">
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div className="display" style={{ fontSize: 26 }}>Director</div>
+          <div className="display" style={{ fontSize: 26 }}>{tr("Director")}</div>
           <div className="seg" style={{ width: 216 }}>
-            <button type="button" className={mode === 'image' ? 'on' : ''} onClick={() => setParams({ mode: null })}>Frame</button>
-            <button type="button" className={mode === 'video' ? 'on' : ''} onClick={() => setParams({ mode: 'video' })}>Shot</button>
-            <button type="button" className={mode === 'scene' ? 'on' : ''} onClick={() => setParams({ mode: 'scene' })}>Scene</button>
+            <button type="button" className={mode === 'image' ? 'on' : ''} onClick={() => setParams({ mode: null })}>{tr("Frame")}</button>
+            <button type="button" className={mode === 'video' ? 'on' : ''} onClick={() => setParams({ mode: 'video' })}>{tr("Shot")}</button>
+            <button type="button" className={mode === 'scene' ? 'on' : ''} onClick={() => setParams({ mode: 'scene' })}>{tr("Scene")}</button>
           </div>
         </div>
 
         {mode === 'video' && (
           <div className="rail-section">
-            <div className="label">Hero frame</div>
+            <div className="label">{tr("Hero frame")}</div>
             {hero ? (
               <div className="ref" style={{ aspectRatio: '16/9' }}>
-                <img src={inputUrl(hero.token)} alt="" />
-                <span className="role start">start</span>
-                <button type="button" className="x" onClick={() => setHero(null)} aria-label="remove"><Icon name="x" size={12} /></button>
+                <img src={inputUrl(hero.token)} alt={""} />
+                <span className="role start">{tr("start")}</span>
+                <button type="button" className="x" onClick={() => setHero(null)} aria-label={tr("remove")}><Icon name="x" size={12} /></button>
               </div>
-            ) : <div className="well" style={{ cursor: 'default', padding: 12 }} onClick={() => setParams({ mode: null })}>Make a frame first, then press <b>Shoot it</b> on it. Or shoot straight from text.</div>}
+            ) : <div className="well" style={{ cursor: 'default', padding: 12 }} onClick={() => setParams({ mode: null })}>{tr("Make a frame first, then press ")}<b>{tr("Shoot it")}</b> {tr("on it. Or shoot straight from text.")}</div>}
           </div>
         )}
 
         <div className="rail-section">
-          <div className="label">Scene</div>
+          <div className="label">{tr("Scene")}</div>
           <MentionBox className="prompt" rows={mode === 'scene' ? 5 : 4} value={scene} onChange={setScene}
             placeholder={mode === 'scene'
-              ? 'The whole scene, beat by beat. Example: @Keeper climbs the stairs with a lantern as the storm hits. At the top he sees a ship breaking on the rocks. Type @ for your cast.'
-              : 'Who, where, what is happening. Example: a lighthouse keeper climbs the stairs with a lantern as the storm hits. Type @ for your cast.'} />
+              ? tr('The whole scene, beat by beat. Example: @Keeper climbs the stairs with a lantern as the storm hits. At the top he sees a ship breaking on the rocks. Type @ for your cast.')
+              : tr('Who, where, what is happening. Example: a lighthouse keeper climbs the stairs with a lantern as the storm hits. Type @ for your cast.')} />
         </div>
 
         <div className="rail-section">
-          <div className="label">Direction</div>
+          <div className="label">{tr("Direction")}</div>
           {mode === 'video' && (
-            <DirectionRow icon="orbit" label="Camera move" value={presetById(move).name} open={open === 'move'} onToggle={() => setOpen(open === 'move' ? null : 'move')}>
+            <DirectionRow icon="orbit" label={tr("Camera move")} value={presetById(move).name} open={open === 'move'} onToggle={() => setOpen(open === 'move' ? null : 'move')}>
               {CAMERA_MOVES.map((p) => (
-                <button key={p.id} type="button" className={`chip ${p.id === move ? 'on' : ''}`} onClick={() => { setMove(p.id); setOpen(null); }}>{p.name}</button>
+                <button key={p.id} type="button" className={`chip ${p.id === move ? 'on' : ''}`} onClick={() => { setMove(p.id); setOpen(null); }}>{tr(p.name)}</button>
               ))}
             </DirectionRow>
           )}
           {axes.map((a) => {
             const cur = a.options.find((o) => o.id === (picks[a.id] ?? 'auto')) ?? a.options[0];
             return (
-              <DirectionRow key={a.id} icon={a.icon} label={a.label} value={cur.label} open={open === a.id} onToggle={() => setOpen(open === a.id ? null : a.id)}>
+              <DirectionRow key={a.id} icon={a.icon} label={tr(a.label)} value={cur.label} open={open === a.id} onToggle={() => setOpen(open === a.id ? null : a.id)}>
                 {a.options.map((o) => (
-                  <button key={o.id} type="button" className={`chip ${o.id === cur.id ? 'on' : ''}`} onClick={() => choose(a.id, o.id)}>{o.label}</button>
+                  <button key={o.id} type="button" className={`chip ${o.id === cur.id ? 'on' : ''}`} onClick={() => choose(a.id, o.id)}>{tr(o.label)}</button>
                 ))}
               </DirectionRow>
             );
           })}
           <EraScrubber era={era} onEra={setEra} grade={grade} onGrade={setGrade} />
           {mode !== 'image' && (
-            <DirectionRow icon="bolt" label="Speed" value={SPEED_RAMPS.find((r) => r.id === ramp)!.label} open={open === 'ramp'} onToggle={() => setOpen(open === 'ramp' ? null : 'ramp')}>
+            <DirectionRow icon="bolt" label={tr("Speed")} value={SPEED_RAMPS.find((r) => r.id === ramp)!.label} open={open === 'ramp'} onToggle={() => setOpen(open === 'ramp' ? null : 'ramp')}>
               {SPEED_RAMPS.map((r) => (
-                <button key={r.id} type="button" title={r.note} className={`chip ${r.id === ramp ? 'on' : ''}`} onClick={() => { setRamp(r.id); setOpen(null); }}>{r.label}</button>
+                <button key={r.id} type="button" title={tr(r.note)} className={`chip ${r.id === ramp ? 'on' : ''}`} onClick={() => { setRamp(r.id); setOpen(null); }}>{tr(r.label)}</button>
               ))}
             </DirectionRow>
           )}
           {mode !== 'image' && ramp !== 'linear' && (
-            <div className="dim" style={{ fontSize: 12, padding: '0 4px' }}>{SPEED_RAMPS.find((r) => r.id === ramp)!.note}. Retimed after the render with in-between frames; {mode === 'video' ? `a ${seconds}s shot runs ${rampSeconds(ramp, seconds)}s` : 'each shot runs longer where it slows'}, without sound.</div>
+            <div className="dim" style={{ fontSize: 12, padding: '0 4px' }}>{tr(SPEED_RAMPS.find((r) => r.id === ramp)!.note)}{tr(". Retimed after the render with in-between frames; ")}{mode === 'video' ? tr("a {0}s shot runs {1}s", { 0: seconds, 1: rampSeconds(ramp, seconds) }) : tr('each shot runs longer where it slows')}{tr(", without sound.")}</div>
           )}
         </div>
 
         {mode !== 'scene' && (
           <details open>
-            <summary className="label" style={{ cursor: 'pointer' }}>Compiled shot</summary>
-            <div className="compiled" style={{ marginTop: 6 }}>{compiled || 'Pick a direction or write the scene.'}</div>
+            <summary className="label" style={{ cursor: 'pointer' }}>{tr("Compiled shot")}</summary>
+            <div className="compiled" style={{ marginTop: 6 }}>{compiled || tr('Pick a direction or write the scene.')}</div>
           </details>
         )}
 
         {mode === 'scene' ? (
           <>
             <div className="chip-row">
-              <ChipMenu icon="grid" value={want} onChange={setWant} title="Shots to plan" options={[{ value: 0, label: 'Auto shots' }, ...Array.from({ length: SCENE_MAX_SHOTS - SCENE_MIN_SHOTS + 1 }, (_, i) => ({ value: i + SCENE_MIN_SHOTS, label: `${i + SCENE_MIN_SHOTS} shots` }))]} />
-              <ChipMenu icon="aspect" value={aspect} onChange={setAspect} title="Aspect" options={ASPECTS.map((a) => ({ value: a.id, label: a.id }))} />
+              <ChipMenu icon="grid" value={want} onChange={setWant} title={tr("Shots to plan")} options={[{ value: 0, label: 'Auto shots' }, ...Array.from({ length: SCENE_MAX_SHOTS - SCENE_MIN_SHOTS + 1 }, (_, i) => ({ value: i + SCENE_MIN_SHOTS, label: `${i + SCENE_MIN_SHOTS} shots` }))]} />
+              <ChipMenu icon="aspect" value={aspect} onChange={setAspect} title={tr("Aspect")} options={ASPECTS.map((a) => ({ value: a.id, label: a.id }))} />
               <TierChip app="scene" value={res} onChange={setRes} />
-              <span className="chip" style={{ gap: 10 }} title="Make a Qwen-Image hero frame per shot first, then shoot from it"><Icon name="image" size={14} />Hero frames <Switch on={heroFrames} onChange={setHeroFrames} label="hero frames" /></span>
-              <span className="chip" style={{ gap: 10 }}><Icon name="audio" size={14} />Sound <Switch on={audio} onChange={setAudio} label="sound" /></span>
+              <span className="chip" style={{ gap: 10 }} title={tr("Make a Qwen-Image hero frame per shot first, then shoot from it")}><Icon name="image" size={14} />{tr("Hero frames ")}<Switch on={heroFrames} onChange={setHeroFrames} label={tr("hero frames")} /></span>
+              <span className="chip" style={{ gap: 10 }}><Icon name="audio" size={14} />{tr("Sound ")}<Switch on={audio} onChange={setAudio} label={tr("sound")} /></span>
               {thinkOverride ? (
-                <span className="chip dim" title={`Set on the server: OPENFIELD_LLM_REASONING=${thinkOverride}`}>
-                  <Icon name="sparkle" size={14} />Think first: {thinkOverride === 'none' ? 'off' : 'on'} (server)
-                </span>
+                <span className="chip dim" title={tr("Set on the server: OPENFIELD_LLM_REASONING={0}", { 0: thinkOverride })}>
+                  <Icon name="sparkle" size={14} />{tr("Think first: ")}{thinkOverride === 'none' ? tr('off') : tr('on')} {tr("(server)")}</span>
               ) : (
-                <span className="chip" style={{ gap: 10 }} title="Let the planner's model think before it writes the shot list: slower, steadier on scenes with many beats. Leave it off to try ideas quickly; switch it on once the scene works.">
-                  <Icon name="sparkle" size={14} />Think first <Switch on={think} onChange={setThink} label="think first" />
+                <span className="chip" style={{ gap: 10 }} title={tr("Let the planner's model think before it writes the shot list: slower, steadier on scenes with many beats. Leave it off to try ideas quickly; switch it on once the scene works.")}>
+                  <Icon name="sparkle" size={14} />{tr("Think first ")}<Switch on={think} onChange={setThink} label={tr("think first")} />
                 </span>
               )}
             </div>
             <button type="button" className="btn" disabled={!!planning || !scene.trim()} onClick={() => void plan()}>
-              <Icon name="sparkle" size={14} />{planning ? 'Planning the shots...' : shots.length ? 'Plan again' : 'Plan shots'}
+              <Icon name="sparkle" size={14} />{planning ? tr('Planning the shots...') : shots.length ? tr('Plan again') : tr('Plan shots')}
             </button>
             <button type="button" className="generate" style={{ marginTop: 'auto' }} disabled={busy || !canGo} onClick={() => void shootAll()}>
-              <span>{busy ? 'Queuing...' : toShoot.length === shots.length ? 'Shoot all' : toShoot.length ? `Shoot ${toShoot.length} and cut` : 'Cut again'}</span>
+              <span>{busy ? tr('Queuing...') : toShoot.length === shots.length ? tr('Shoot all') : toShoot.length ? tr("Shoot {0} and cut", { 0: toShoot.length }) : tr('Cut again')}</span>
               <span className="cost">{size.w}x{size.h}{sceneEst ? ` · ${fmtSeconds(sceneEst)}` : ''}</span>
             </button>
           </>
@@ -314,15 +314,15 @@ export default function DirectorPage() {
           <>
             <div className="chip-row">
               {mode === 'image'
-                ? <ChipMenu icon="sparkle" value={imageModel} onChange={setImageModel} title="Model" options={IMAGE_MODELS.map((m) => ({ value: m.id, label: m.label }))} />
-                : <ChipMenu icon="clock" value={seconds} onChange={setSeconds} title="Duration" options={[3, 5, 8, 10].map((d) => ({ value: d, label: `${d}s` }))} />}
-              <ChipMenu icon="aspect" value={aspect} onChange={setAspect} title="Aspect" options={ASPECTS.map((a) => ({ value: a.id, label: a.id }))} />
+                ? <ChipMenu icon="sparkle" value={imageModel} onChange={setImageModel} title={tr("Model")} options={IMAGE_MODELS.map((m) => ({ value: m.id, label: m.label }))} />
+                : <ChipMenu icon="clock" value={seconds} onChange={setSeconds} title={tr("Duration")} options={[3, 5, 8, 10].map((d) => ({ value: d, label: `${d}s` }))} />}
+              <ChipMenu icon="aspect" value={aspect} onChange={setAspect} title={tr("Aspect")} options={ASPECTS.map((a) => ({ value: a.id, label: a.id }))} />
               {mode === 'video' && <TierChip app="director" value={res} onChange={setRes} />}
               <Stepper value={count} min={1} max={4} onChange={setCount} fmt={(v) => `${v}/4`} />
-              {mode === 'video' && <span className="chip" style={{ gap: 10 }}><Icon name="audio" size={14} />Sound <Switch on={audio && ramp === 'linear'} onChange={setAudio} label="sound" /></span>}
+              {mode === 'video' && <span className="chip" style={{ gap: 10 }}><Icon name="audio" size={14} />{tr("Sound ")}<Switch on={audio && ramp === 'linear'} onChange={setAudio} label={tr("sound")} /></span>}
             </div>
             <button type="button" className="generate" style={{ marginTop: 'auto' }} disabled={busy || !canGo} onClick={() => void go()}>
-              <span>{busy ? 'Queuing...' : mode === 'image' ? 'Make frames' : 'Shoot'}</span>
+              <span>{busy ? tr('Queuing...') : mode === 'image' ? tr('Make frames') : tr('Shoot')}</span>
               <span className="cost">{size.w}x{size.h}{est ? ` · ${fmtSeconds(est * count)}` : ''}</span>
             </button>
           </>
@@ -330,7 +330,7 @@ export default function DirectorPage() {
       </aside>
 
       <section className="canvas">
-        <div className="canvas-head"><div className="tabs" style={{ borderBottom: 0 }}><button type="button" className="on">{mode === 'scene' ? 'Scene' : 'Shots'}</button></div></div>
+        <div className="canvas-head"><div className="tabs" style={{ borderBottom: 0 }}><button type="button" className="on">{mode === 'scene' ? tr('Scene') : tr('Shots')}</button></div></div>
         <div className="canvas-body">
           {mode === 'scene' && (
             <ShotStrip shots={shots} takes={allTakes} planNote={planNote} planning={!!planning} planLive={planLive} direction={directorDirection({ ...picks, framing: 'auto' }, era)}
@@ -340,29 +340,29 @@ export default function DirectorPage() {
             mode === 'scene' ? (shots.length === 0 && !planning && (
               <div className="hero-empty">
                 <div className="explore-glow" style={{ top: -140, left: -20, right: -20 }}><Spill src={presetClip('crane-up')} video /></div>
-                <div className="label" style={{ marginBottom: 14, position: 'relative' }}>One scene, a shot list, one cut</div>
-                <div className="display" style={{ fontSize: 'clamp(34px,4.6vw,60px)' }}>Cover the scene <span className="hl">in shots</span></div>
+                <div className="label" style={{ marginBottom: 14, position: 'relative' }}>{tr("One scene, a shot list, one cut")}</div>
+                <div className="display" style={{ fontSize: 'clamp(34px,4.6vw,60px)' }}>{tr("Cover the scene ")}<span className="hl">{tr("in shots")}</span></div>
                 <div className="steps3">
-                  <div><span className="label">01</span><b>Write the scene</b><span className="dim">Set genre, era and speed, or leave them on Auto.</span></div>
-                  <div><span className="label">02</span><b>Plan shots</b><span className="dim">A local model splits it into framings, moves and actions. Edit any of it.</span></div>
-                  <div><span className="label">03</span><b>Shoot all</b><span className="dim">Each shot renders on its own, then they cut together.</span></div>
+                  <div><span className="label">01</span><b>{tr("Write the scene")}</b><span className="dim">{tr("Set genre, era and speed, or leave them on Auto.")}</span></div>
+                  <div><span className="label">02</span><b>{tr("Plan shots")}</b><span className="dim">{tr("A local model splits it into framings, moves and actions. Edit any of it.")}</span></div>
+                  <div><span className="label">03</span><b>{tr("Shoot all")}</b><span className="dim">{tr("Each shot renders on its own, then they cut together.")}</span></div>
                 </div>
               </div>
             )) : (
               <div className="hero-empty">
                 <div className="explore-glow" style={{ top: -140, left: -20, right: -20 }}><Spill src={presetClip('dolly-zoom')} video /></div>
-                <div className="label" style={{ marginBottom: 14, position: 'relative' }}>Frame first, then shoot</div>
-                <div className="display" style={{ fontSize: 'clamp(34px,4.6vw,60px)' }}>Direct it <span className="hl">like a set</span></div>
+                <div className="label" style={{ marginBottom: 14, position: 'relative' }}>{tr("Frame first, then shoot")}</div>
+                <div className="display" style={{ fontSize: 'clamp(34px,4.6vw,60px)' }}>{tr("Direct it ")}<span className="hl">{tr("like a set")}</span></div>
                 <div className="steps3">
-                  <div><span className="label">01</span><b>Write the scene</b><span className="dim">Then set genre, camera, light, film, era and grade, or leave them on Auto.</span></div>
-                  <div><span className="label">02</span><b>Make frames</b><span className="dim">Pick the hero frame from a few stills.</span></div>
-                  <div><span className="label">03</span><b>Shoot it</b><span className="dim">Add a camera move and a speed ramp, and render the shot.</span></div>
+                  <div><span className="label">01</span><b>{tr("Write the scene")}</b><span className="dim">{tr("Then set genre, camera, light, film, era and grade, or leave them on Auto.")}</span></div>
+                  <div><span className="label">02</span><b>{tr("Make frames")}</b><span className="dim">{tr("Pick the hero frame from a few stills.")}</span></div>
+                  <div><span className="label">03</span><b>{tr("Shoot it")}</b><span className="dim">{tr("Add a camera move and a speed ramp, and render the shot.")}</span></div>
                 </div>
               </div>
             )
           ) : (
             <>
-              {mode === 'scene' && <div className="label" style={{ margin: '22px 0 10px' }}>Cuts</div>}
+              {mode === 'scene' && <div className="label" style={{ margin: '22px 0 10px' }}>{tr("Cuts")}</div>}
               <div className="grid">
                 {takes.map((t) => (
                   <MediaCard key={t.id} take={t} onOpen={() => setViewing(t.id)} pendingLabel={settingsOf(t).cut ? cutLabel(t, allTakes) : undefined} actions={<>
@@ -383,10 +383,10 @@ export default function DirectorPage() {
 
 /** What a waiting cut is doing: how many of its shots are in. */
 function cutLabel(cut: Take, all: Take[]): string {
-  if (cut.prompt_id) return 'Cutting';
+  if (cut.prompt_id) return tr('Cutting');
   const shots = (settingsOf(cut).shots ?? []) as { take?: number }[];
   const done = shots.filter((s) => s.take && all.find((t) => t.id === s.take)?.status === 'done').length;
-  return `Shooting ${done}/${shots.length}`;
+  return tr("Shooting {0}/{1}", { 0: done, 1: shots.length });
 }
 
 function DirectionRow(p: { icon: string; label: string; value: string; open: boolean; onToggle: () => void; children: React.ReactNode }) {
@@ -395,9 +395,9 @@ function DirectionRow(p: { icon: string; label: string; value: string; open: boo
       <button type="button" className="rail-row" onClick={p.onToggle}>
         <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <span className="ico" style={{ width: 28, height: 28, borderRadius: 8, display: 'grid', placeItems: 'center', background: 'var(--panel-3)', color: p.value === 'Auto' || p.value === 'Linear' ? 'var(--dim)' : 'var(--accent)' }}><Icon name={p.icon} size={14} /></span>
-          <span className="label" style={{ color: 'var(--dim)' }}>{p.label}</span>
+          <span className="label" style={{ color: 'var(--dim)' }}>{tr(p.label)}</span>
         </span>
-        <span className="val">{p.value}<Icon name={p.open ? 'down' : 'chev'} size={13} /></span>
+        <span className="val">{tr(p.value)}<Icon name={p.open ? 'down' : 'chev'} size={13} /></span>
       </button>
       {p.open && <div className="chip-row" style={{ padding: '8px 2px 4px' }}>{p.children}</div>}
     </div>
@@ -422,18 +422,18 @@ function EraScrubber(p: { era: number | null; onEra: (v: number | null) => void;
       <div className="era-head">
         <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <span className="ico" style={{ width: 28, height: 28, borderRadius: 8, display: 'grid', placeItems: 'center', background: 'var(--panel-3)', color: on ? 'var(--accent)' : 'var(--dim)' }}><Icon name="clock" size={14} /></span>
-          <span className="label" style={{ color: 'var(--dim)' }}>Era</span>
+          <span className="label" style={{ color: 'var(--dim)' }}>{tr("Era")}</span>
         </span>
-        <span className="val">{on ? <>{year} <span className="dim">· {eraDecade(year).label}</span></> : 'Auto'}<Switch on={on} onChange={(v) => p.onEra(v ? year : null)} label="era" /></span>
+        <span className="val">{on ? <>{year} <span className="dim">· {tr(eraDecade(year).label)}</span></> : tr('Auto')}<Switch on={on} onChange={(v) => p.onEra(v ? year : null)} label={tr("era")} /></span>
       </div>
       {on && (
         <>
-          <input type="range" min={ERA_MIN} max={ERA_MAX} step={1} value={year} onChange={(e) => p.onEra(Number(e.target.value))} aria-label="era year" />
+          <input type="range" min={ERA_MIN} max={ERA_MAX} step={1} value={year} onChange={(e) => p.onEra(Number(e.target.value))} aria-label={tr("era year")} />
           <div className="era-ticks">{ERA_DECADES.map((d) => <button key={d.year} type="button" className={eraDecade(year).year === d.year ? 'on' : ''} onClick={() => p.onEra(d.year)}>{`${String(d.year).slice(2)}s`}</button>)}</div>
           <div className="era-grade">
             <span className="era-swatch" style={{ background: gradeSwatch(year), opacity: p.grade ? 1 : 0.35 }} />
-            <span className="dim">Grade the output</span>
-            <Switch on={p.grade} onChange={p.onGrade} label="grade the output" />
+            <span className="dim">{tr("Grade the output")}</span>
+            <Switch on={p.grade} onChange={p.onGrade} label={tr("grade the output")} />
           </div>
         </>
       )}
@@ -467,8 +467,8 @@ function ShotStrip(p: {
   return (
     <div className="strip-wrap">
       <div className="strip-head">
-        <span className="label">Shot list{p.shots.length ? ` · ${p.shots.length} shots · ${total}s before ramps` : ''}</span>
-        <span className="dim" style={{ fontSize: 12 }}>{p.planning ? (p.planLive?.text ?? 'Planning on the local model...') : p.planNote}</span>
+        <span className="label">{tr("Shot list")}{p.shots.length ? tr(" · {0} shots · {1}s before ramps", { 0: p.shots.length, 1: total }) : ''}</span>
+        <span className="dim" style={{ fontSize: 12 }}>{p.planning ? (p.planLive?.text ?? tr('Planning on the local model...')) : p.planNote}</span>
       </div>
       <div className="strip">
         {p.planning && !p.shots.length && Array.from({ length: p.planLive?.slots ?? 3 }, (_, i) => {
@@ -476,7 +476,7 @@ function ShotStrip(p: {
           return (
             <div key={i} className="shot ghost">
               <div className="shot-media" style={s ? { animation: 'none' } : undefined}>{s && <span className="shot-no">{i + 1}</span>}</div>
-              {s && <div style={{ padding: '8px 10px', fontSize: 12 }}><div className="dim">{s.framing} · {s.move}</div><div>{s.action}</div></div>}
+              {s && <div style={{ padding: '8px 10px', fontSize: 12 }}><div className="dim">{tr(s.framing)} · {tr(s.move)}</div><div>{s.action}</div></div>}
             </div>
           );
         })}
@@ -485,7 +485,7 @@ function ShotStrip(p: {
             onEdit={(patch) => p.onEdit(i, patch)} onMove={(d) => p.onMove(i, d)} onReroll={() => p.onReroll(i)} onRemove={() => p.onRemove(i)} onOpen={p.onOpen} />
         ))}
         {p.shots.length < SCENE_MAX_SHOTS && !p.planning && (
-          <button type="button" className="shot add" onClick={p.onAdd}><Icon name="plus" size={18} /><span>Add shot</span></button>
+          <button type="button" className="shot add" onClick={p.onAdd}><Icon name="plus" size={18} /><span>{tr("Add shot")}</span></button>
         )}
       </div>
     </div>
@@ -519,34 +519,34 @@ function ShotCard(p: {
         onMouseLeave={() => { const v = vref.current; if (v) { v.pause(); v.currentTime = 0; } }}>
         {take?.status === 'done' ? (
           <>
-            <img src={posterUrl(take.id)} alt="" />
+            <img src={posterUrl(take.id)} alt={""} />
             <video ref={vref} src={mediaUrl(take.id)} muted loop playsInline preload="none" />
           </>
-        ) : hero?.status === 'done' ? <img src={posterUrl(hero.id)} alt="" style={{ opacity: 0.6 }} /> : null}
+        ) : hero?.status === 'done' ? <img src={posterUrl(hero.id)} alt={""} style={{ opacity: 0.6 }} /> : null}
         <span className="shot-no">{p.i + 1}</span>
-        {state && state !== 'done' && <span className={`shot-state ${state === 'failed' || state === 'stopped' ? 'bad' : ''}`}>{state}</span>}
+        {state && state !== 'done' && <span className={`shot-state ${state === 'failed' || state === 'stopped' ? 'bad' : ''}`}>{tr(state)}</span>}
         {(take && isActive(take)) || (hero && isActive(hero)) ? <div className="progress"><i style={{ width: `${pct}%` }} /></div> : null}
         {take?.status === 'done' && <span className="badge cool shot-len">{outSecs ?? s.seconds}s</span>}
       </div>
       <div className="shot-body">
         <div className="chip-row">
-          <ChipMenu icon="aspect" value={s.framing} onChange={(v) => p.onEdit({ framing: v })} title="Framing" dir="down" options={SCENE_FRAMINGS.map((f) => ({ value: f.id, label: f.label }))} />
-          <ChipMenu icon="orbit" value={s.move} onChange={(v) => p.onEdit({ move: v })} title="Camera move" dir="down" options={CAMERA_MOVES.map((m) => ({ value: m.id, label: m.name }))} />
-          <ChipMenu icon="clock" value={s.seconds} onChange={(v) => p.onEdit({ seconds: v })} title="Length" dir="down" options={Array.from({ length: SHOT_SECONDS.max - SHOT_SECONDS.min + 1 }, (_, k) => ({ value: k + SHOT_SECONDS.min, label: `${k + SHOT_SECONDS.min}s` }))} />
-          <ChipMenu icon="bolt" value={s.ramp ?? ''} onChange={(v) => p.onEdit({ ramp: (v || undefined) as RampId | undefined })} title="Speed for this shot" dir="down" options={[{ value: '', label: 'Scene speed' }, ...SPEED_RAMPS.map((r) => ({ value: r.id, label: r.label }))]} />
+          <ChipMenu icon="aspect" value={tr(s.framing)} onChange={(v) => p.onEdit({ framing: v })} title={tr("Framing")} dir="down" options={SCENE_FRAMINGS.map((f) => ({ value: f.id, label: f.label }))} />
+          <ChipMenu icon="orbit" value={tr(s.move)} onChange={(v) => p.onEdit({ move: v })} title={tr("Camera move")} dir="down" options={CAMERA_MOVES.map((m) => ({ value: m.id, label: m.name }))} />
+          <ChipMenu icon="clock" value={s.seconds} onChange={(v) => p.onEdit({ seconds: v })} title={tr("Length")} dir="down" options={Array.from({ length: SHOT_SECONDS.max - SHOT_SECONDS.min + 1 }, (_, k) => ({ value: k + SHOT_SECONDS.min, label: `${k + SHOT_SECONDS.min}s` }))} />
+          <ChipMenu icon="bolt" value={s.ramp ?? ''} onChange={(v) => p.onEdit({ ramp: (v || undefined) as RampId | undefined })} title={tr("Speed for this shot")} dir="down" options={[{ value: '', label: 'Scene speed' }, ...SPEED_RAMPS.map((r) => ({ value: r.id, label: r.label }))]} />
         </div>
-        <MentionBox className="prompt" rows={3} chips={false} value={s.action} placeholder={`What happens in this ${framing?.label.toLowerCase() ?? 'shot'}`} onChange={(v) => p.onEdit({ action: v })} />
+        <MentionBox className="prompt" rows={3} chips={false} value={s.action} placeholder={tr("What happens in this {0}", { 0: framing?.label.toLowerCase() ?? 'shot' })} onChange={(v) => p.onEdit({ action: v })} />
         <ShotCast ids={s.cast ?? []} onChange={(cast) => p.onEdit({ cast: cast.length ? cast : undefined })} />
         <details>
-          <summary className="label" style={{ cursor: 'pointer' }}>Shot prompt</summary>
+          <summary className="label" style={{ cursor: 'pointer' }}>{tr("Shot prompt")}</summary>
           <div className="compiled" style={{ marginTop: 6, fontSize: 11 }}>{p.prompt}</div>
         </details>
         <div className="shot-foot">
-          <button type="button" className="icon-btn" title="Earlier" disabled={p.i === 0} onClick={() => p.onMove(-1)}><span style={{ display: 'grid', transform: 'rotate(180deg)' }}><Icon name="chev" size={13} /></span></button>
-          <button type="button" className="icon-btn" title="Later" disabled={p.i === p.n - 1} onClick={() => p.onMove(1)}><Icon name="chev" size={13} /></button>
+          <button type="button" className="icon-btn" title={tr("Earlier")} disabled={p.i === 0} onClick={() => p.onMove(-1)}><span style={{ display: 'grid', transform: 'rotate(180deg)' }}><Icon name="chev" size={13} /></span></button>
+          <button type="button" className="icon-btn" title={tr("Later")} disabled={p.i === p.n - 1} onClick={() => p.onMove(1)}><Icon name="chev" size={13} /></button>
           <span style={{ flex: 1 }} />
-          <button type="button" className="btn sm" title="Shoot this one again and re-cut" disabled={p.busy || !s.action.trim()} onClick={p.onReroll}><Icon name="redo" size={13} />Re-roll</button>
-          <button type="button" className="icon-btn" title="Remove the shot" onClick={p.onRemove}><Icon name="trash" size={13} /></button>
+          <button type="button" className="btn sm" title={tr("Shoot this one again and re-cut")} disabled={p.busy || !s.action.trim()} onClick={p.onReroll}><Icon name="redo" size={13} />{tr("Re-roll")}</button>
+          <button type="button" className="icon-btn" title={tr("Remove the shot")} onClick={p.onRemove}><Icon name="trash" size={13} /></button>
         </div>
       </div>
     </div>
@@ -568,27 +568,27 @@ function ShotCast(p: { ids: number[]; onChange: (ids: number[]) => void }) {
   return (
     <div className="cast-chips shot-cast">
       {on.map((m) => (
-        <button key={m.id} type="button" className="cast-chip" title={`Remove ${m.name} from this shot`} onClick={() => toggle(m.id)}>
-          {m.refs[0] ? <img src={m.refs[0].url} alt="" /> : <Icon name="person" size={12} />}
+        <button key={m.id} type="button" className="cast-chip" title={tr("Remove {0} from this shot", { 0: m.name })} onClick={() => toggle(m.id)}>
+          {m.refs[0] ? <img src={m.refs[0].url} alt={""} /> : <Icon name="person" size={12} />}
           {m.name}
           <span aria-hidden className="shot-cast-x"><Icon name="x" size={10} /></span>
         </button>
       ))}
       <div className="pop-wrap" ref={ref}>
-        <button type="button" className="chip" title="Who is in this shot" onClick={() => setOpen(!open)}>
-          <Icon name="person" size={13} /><span>{on.length ? 'Cast' : 'Add cast'}</span>
+        <button type="button" className="chip" title={tr("Who is in this shot")} onClick={() => setOpen(!open)}>
+          <Icon name="person" size={13} /><span>{on.length ? tr('Cast') : tr('Add cast')}</span>
         </button>
         {open && (
           <div className="popover down mention-pop">
-            <div className="pop-title label">In this shot</div>
+            <div className="pop-title label">{tr("In this shot")}</div>
             {cast.map((m) => {
               const sel = p.ids.includes(m.id);
               return (
                 <button key={m.id} type="button" role="menuitemcheckbox" aria-checked={sel}
                   className={`pop-item mention-item ${sel ? 'on' : ''}`} onClick={() => toggle(m.id)}>
-                  <span className="mention-face">{m.refs[0] ? <img src={m.refs[0].url} alt="" /> : null}</span>
+                  <span className="mention-face">{m.refs[0] ? <img src={m.refs[0].url} alt={""} /> : null}</span>
                   <span className="mention-name">{m.name}</span>
-                  <small className="dim">{sel ? 'In shot' : m.refs.length ? m.kind : 'no pictures'}</small>
+                  <small className="dim">{sel ? tr('In shot') : m.refs.length ? tr(m.kind) : tr('no pictures')}</small>
                 </button>
               );
             })}

@@ -1,4 +1,5 @@
 /** Video create: left control rail + canvas (History / Motion presets / How it works). */
+import { tr } from '../i18n';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { api, inputUrl, uploadFile } from '../api';
 import {
@@ -77,7 +78,7 @@ export default function VideoPage() {
 
   async function addFiles(files: FileList | File[]) {
     for (const f of Array.from(files)) {
-      if (!f.type.startsWith('image/')) { toast('Images only for now: drop a PNG, JPG or WebP', true); continue; }
+      if (!f.type.startsWith('image/')) { toast(tr('Images only for now: drop a PNG, JPG or WebP'), true); continue; }
       const dims = await new Promise<{ w: number; h: number }>((r) => {
         const img = new Image();
         img.onload = () => r({ w: img.naturalWidth, h: img.naturalHeight });
@@ -91,15 +92,15 @@ export default function VideoPage() {
           return [...cur, { token, role, kind: 'image' as const, name: f.name, ...dims }].slice(0, 6);
         });
       } catch (e) {
-        toast(e instanceof Error ? e.message : 'upload failed', true);
+        toast(e instanceof Error ? e.message : tr('upload failed'), true);
       }
     }
   }
 
-  usePageDrop(mode === 'loop' ? 'Drop an image to loop it' : 'Drop images to use as frames', (files) => {
+  usePageDrop(mode === 'loop' ? tr('Drop an image to loop it') : tr('Drop images to use as frames'), (files) => {
     const images = files.filter((f) => f.type.startsWith('image/'));
     if (images.length) void addFiles(images);
-    else toast('Video takes still images here. Drop a clip on Mirror, Reshoot or Upscale.', true);
+    else toast(tr('Video takes still images here. Drop a clip on Mirror, Reshoot or Upscale.'), true);
   });
 
   function cycleRole(i: number) {
@@ -125,10 +126,10 @@ export default function VideoPage() {
       if (castOn && castMode === 'frame') body.castMode = 'frame';
       if (mode === 'loop' && autoFix) body.seamFix = 'auto';
       const r = await api.generate(body);
-      toast(`Queued ${r.takeIds.length} video${r.takeIds.length > 1 ? 's' : ''}`);
+      toast(tr("Queued videos: {0}", { 0: r.takeIds.length }));
       setParams({ select: null, tab: null });
     } catch (e) {
-      toast(e instanceof Error ? e.message : 'failed', true);
+      toast(e instanceof Error ? e.message : tr('failed'), true);
     } finally {
       setBusy(false);
     }
@@ -146,30 +147,30 @@ export default function VideoPage() {
       <aside className="rail">
         <Spill src={presetClip(preset.id)} video key={preset.id} />
         <div className="tabs">
-          <button type="button" className={mode === 'create' ? 'on' : ''} onClick={() => setParams({ mode: null })}>Create video</button>
-          <button type="button" className={mode === 'loop' ? 'on' : ''} onClick={() => setParams({ mode: 'loop' })}>Seamless loop</button>
+          <button type="button" className={mode === 'create' ? 'on' : ''} onClick={() => setParams({ mode: null })}>{tr("Create video")}</button>
+          <button type="button" className={mode === 'loop' ? 'on' : ''} onClick={() => setParams({ mode: 'loop' })}>{tr("Seamless loop")}</button>
         </div>
 
         <button type="button" className="preset-hero" onClick={() => setParams({ select: 'preset' })}>
           <Clip src={presetClip(preset.id)} key={preset.id} />
           <div className="txt">
-            <div className="display">{preset.name}</div>
-            <div className="label">Motion preset for {model.label}</div>
+            <div className="display">{tr(preset.name)}</div>
+            <div className="label">{tr("Motion preset for ")}{tr(model.label)}</div>
           </div>
-          <span className="chip change"><Icon name="wand" size={13} />Change</span>
+          <span className="chip change"><Icon name="wand" size={13} />{tr("Change")}</span>
         </button>
 
         <div className="rail-section">
-          <div className="label">{mode === 'loop' ? 'Loop frame' : 'Frames'}</div>
+          <div className="label">{mode === 'loop' ? tr('Loop frame') : tr('Frames')}</div>
           {refs.length > 0 && (
             <div className="refs">
               {refs.map((r, i) => (
                 <div className="ref" key={r.token + i}>
-                  <img src={inputUrl(r.token)} alt="" />
-                  <button type="button" className={`role ${r.role}`} onClick={() => cycleRole(i)} title="Click to change role">
-                    {mode === 'loop' && r.role === 'start' ? 'start = end' : r.role}
+                  <img src={inputUrl(r.token)} alt={""} />
+                  <button type="button" className={`role ${r.role}`} onClick={() => cycleRole(i)} title={tr("Click to change role")}>
+                    {mode === 'loop' && r.role === 'start' ? tr('start = end') : tr(r.role)}
                   </button>
-                  <button type="button" className="x" onClick={() => setRefs((c) => c.filter((_, j) => j !== i))} aria-label="remove"><Icon name="x" size={12} /></button>
+                  <button type="button" className="x" onClick={() => setRefs((c) => c.filter((_, j) => j !== i))} aria-label={tr("remove")}><Icon name="x" size={12} /></button>
                 </div>
               ))}
             </div>
@@ -178,24 +179,24 @@ export default function VideoPage() {
         </div>
 
         <div className="rail-section">
-          <div className="label">Prompt</div>
+          <div className="label">{tr("Prompt")}</div>
           <MentionBox className="prompt" rows={5} value={prompt} onChange={setPrompt}
-            placeholder={mode === 'loop' ? 'What moves inside the loop. The first and last frame match exactly.' : 'Describe the shot: who, where, what happens. Type @ for your cast. The motion preset adds the camera.'}
+            placeholder={mode === 'loop' ? tr('What moves inside the loop. The first and last frame match exactly.') : tr('Describe the shot: who, where, what happens. Type @ for your cast. The motion preset adds the camera.')}
             onKeyDown={(e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && canGo) void go(); }} />
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <span className="chip" style={{ background: 'transparent', padding: '4px 0' }}><Icon name="audio" size={14} /><span className="dim">Sound</span></span>
-            <Switch on={audio} onChange={setAudio} label="sound" />
+            <span className="chip" style={{ background: 'transparent', padding: '4px 0' }}><Icon name="audio" size={14} /><span className="dim">{tr("Sound")}</span></span>
+            <Switch on={audio} onChange={setAudio} label={tr("sound")} />
           </div>
           {mode === 'loop' && (
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
-              title="Each loop is measured at its wrap either way. On, a visible seam gets extra tries (a trim, the wrap regenerated, a new seed) as new takes. They usually lower the seam and seldom close it.">
-              <span className="chip" style={{ background: 'transparent', padding: '4px 0' }}><Icon name="loop" size={14} /><span className="dim">Auto-fix the seam</span></span>
-              <Switch on={autoFix} onChange={setAutoFix} label="auto-fix the seam" />
+              title={tr("Each loop is measured at its wrap either way. On, a visible seam gets extra tries (a trim, the wrap regenerated, a new seed) as new takes. They usually lower the seam and seldom close it.")}>
+              <span className="chip" style={{ background: 'transparent', padding: '4px 0' }}><Icon name="loop" size={14} /><span className="dim">{tr("Auto-fix the seam")}</span></span>
+              <Switch on={autoFix} onChange={setAutoFix} label={tr("auto-fix the seam")} />
             </div>
           )}
           {preset.text && (
             <details>
-              <summary className="label" style={{ cursor: 'pointer' }}>Final prompt</summary>
+              <summary className="label" style={{ cursor: 'pointer' }}>{tr("Final prompt")}</summary>
               <div className="compiled" style={{ marginTop: 6 }}>{compiled || '...'}</div>
             </details>
           )}
@@ -204,26 +205,26 @@ export default function VideoPage() {
         {castOn && <CastShot members={castNamed} mode={castMode} onMode={setCastMode} size={size} />}
 
         <ModelRow value={model.id} onChange={(id) => setParams({ model: id === 'ltx25' ? null : id })} />
-        {model.warn && <div className="label" style={{ color: 'var(--accent)', textTransform: 'none', letterSpacing: 0, fontSize: 11.5 }}>{model.warn}</div>}
+        {model.warn && <div className="label" style={{ color: 'var(--accent)', textTransform: 'none', letterSpacing: 0, fontSize: 11.5 }}>{tr(model.warn)}</div>}
 
         <div className="chip-row">
-          <ChipMenu icon="clock" value={seconds} onChange={setSeconds} title="Duration"
+          <ChipMenu icon="clock" value={seconds} onChange={setSeconds} title={tr("Duration")}
             options={model.durations.map((d) => ({ value: d, label: `${d}s` }))} />
-          <ChipMenu icon="aspect" value={aspect} onChange={setAspect} title="Aspect"
+          <ChipMenu icon="aspect" value={aspect} onChange={setAspect} title={tr("Aspect")}
             options={[{ value: 'auto', label: 'Auto', note: start ? 'from frame' : '16:9' }, ...ASPECTS.map((a) => ({ value: a.id, label: a.id }))]} />
           <TierChip app="video" value={res} onChange={setRes} />
           <Stepper value={count} min={1} max={4} onChange={setCount} fmt={(v) => `${v}/4`} />
           {model.id === 'ltx25' && <LoraChips family="ltx" value={loras} onChange={setLoras} />}
           {model.id === 'h3' && turbos.length > 0 && (
-            <ChipMenu icon="bolt" value={turbo} onChange={setTurbo} title="Turbo (step distill)"
+            <ChipMenu icon="bolt" value={turbo} onChange={setTurbo} title={tr("Turbo (step distill)")}
               options={[{ value: '', label: 'Full · 20 steps', note: 'No distill: the slowest, the reference quality.' }, ...turbos.map((t) => ({ value: t.key, label: t.label, note: t.note }))]} />
           )}
         </div>
 
         <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: 6 }}>
-          {needsStart && !start && <div className="label" style={{ textTransform: 'none', letterSpacing: 0 }}>{mode === 'loop' ? 'Add one image to loop.' : `${model.label} needs a start frame.`}</div>}
+          {needsStart && !start && <div className="label" style={{ textTransform: 'none', letterSpacing: 0 }}>{mode === 'loop' ? tr('Add one image to loop.') : tr("{0} needs a start frame.", { 0: model.label })}</div>}
           <button type="button" className="generate" disabled={!canGo} onClick={() => void go()}>
-            <span>{busy ? 'Queuing...' : 'Generate'}</span>
+            <span>{busy ? tr('Queuing...') : tr('Generate')}</span>
             <span className="cost">{shown.w}x{shown.h}{est ? ` · ${fmtSeconds(est * count)}` : ''}</span>
           </button>
         </div>
@@ -232,11 +233,11 @@ export default function VideoPage() {
       <section className="canvas">
         <div className="canvas-head">
           <div className="tabs" style={{ borderBottom: 0 }}>
-            <button type="button" className={tab === 'history' ? 'on' : ''} onClick={() => setParams({ select: null, tab: null })}>History</button>
-            <button type="button" className={tab === 'presets' ? 'on' : ''} onClick={() => setParams({ select: 'preset' })}>Motion presets</button>
-            <button type="button" className={tab === 'how' ? 'on' : ''} onClick={() => setParams({ select: null, tab: 'how' })}>How it works</button>
+            <button type="button" className={tab === 'history' ? 'on' : ''} onClick={() => setParams({ select: null, tab: null })}>{tr("History")}</button>
+            <button type="button" className={tab === 'presets' ? 'on' : ''} onClick={() => setParams({ select: 'preset' })}>{tr("Motion presets")}</button>
+            <button type="button" className={tab === 'how' ? 'on' : ''} onClick={() => setParams({ select: null, tab: 'how' })}>{tr("How it works")}</button>
           </div>
-          {tab === 'presets' && <button type="button" className="icon-btn" onClick={() => setParams({ select: null })} aria-label="close"><Icon name="x" /></button>}
+          {tab === 'presets' && <button type="button" className="icon-btn" onClick={() => setParams({ select: null })} aria-label={tr("close")}><Icon name="x" /></button>}
         </div>
         <div className="canvas-body">
           {tab === 'presets' && <PresetPicker value={preset.id} onPick={(id) => setParams({ preset: id === 'free' ? null : id, select: null })} />}
@@ -271,22 +272,22 @@ function CastShot({ members, mode, onMode, size }: { members: CastMember[]; mode
   }, [members, size.w, size.h]);
   return (
     <div className="rail-section">
-      <div className="label">Cast in this shot</div>
+      <div className="label">{tr("Cast in this shot")}</div>
       <div className="seg">
-        <button type="button" className={mode === 'sheet' ? 'on' : ''} onClick={() => onMode('sheet')}>Reference sheet</button>
-        <button type="button" className={mode === 'frame' ? 'on' : ''} onClick={() => onMode('frame')}>Hero frame</button>
+        <button type="button" className={mode === 'sheet' ? 'on' : ''} onClick={() => onMode('sheet')}>{tr("Reference sheet")}</button>
+        <button type="button" className={mode === 'frame' ? 'on' : ''} onClick={() => onMode('frame')}>{tr("Hero frame")}</button>
       </div>
       {mode === 'sheet' ? (
         <>
-          <div className="sheet-preview" style={{ aspectRatio: `${sheet.width} / ${sheet.height}` }} title="What LTX-2.5 holds on every frame">
+          <div className="sheet-preview" style={{ aspectRatio: `${sheet.width} / ${sheet.height}` }} title={tr("What LTX-2.5 holds on every frame")}>
             {sheet.tiles.map((t, i) => (
-              <img key={i} src={sheet.url.get(t.image)} alt="" style={{ objectFit: t.fit, left: `${(t.x / sheet.width) * 100}%`, top: `${(t.y / sheet.height) * 100}%`, width: `${(t.w / sheet.width) * 100}%`, height: `${(t.h / sheet.height) * 100}%` }} />
+              <img key={i} src={sheet.url.get(t.image)} alt={""} style={{ objectFit: t.fit, left: `${(t.x / sheet.width) * 100}%`, top: `${(t.y / sheet.height) * 100}%`, width: `${(t.w / sheet.width) * 100}%`, height: `${(t.h / sheet.height) * 100}%` }} />
             ))}
           </div>
-          <div className="label" style={{ textTransform: 'none', letterSpacing: 0 }}>The sheet steers every frame. Renders at {sheet.width}x{sheet.height}, 5 seconds or more.</div>
+          <div className="label" style={{ textTransform: 'none', letterSpacing: 0 }}>{tr("The sheet steers every frame. Renders at ")}{sheet.width}x{sheet.height}{tr(", 5 seconds or more.")}</div>
         </>
       ) : (
-        <div className="label" style={{ textTransform: 'none', letterSpacing: 0 }}>A still of your cast in this scene is composed first, then the video starts from it.</div>
+        <div className="label" style={{ textTransform: 'none', letterSpacing: 0 }}>{tr("A still of your cast in this scene is composed first, then the video starts from it.")}</div>
       )}
     </div>
   );
@@ -298,16 +299,16 @@ function ModelRow({ value, onChange }: { value: string; onChange: (id: string) =
   return (
     <div style={{ position: 'relative' }}>
       <button type="button" className="rail-row" onClick={() => setOpen(!open)}>
-        <span className="label">Model</span>
-        <span className="val">{m.label}<Icon name={open ? 'down' : 'chev'} size={14} /></span>
+        <span className="label">{tr("Model")}</span>
+        <span className="val">{tr(m.label)}<Icon name={open ? 'down' : 'chev'} size={14} /></span>
       </button>
       {open && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 4 }}>
           {VIDEO_MODELS.map((x) => (
             <button key={x.id} type="button" className={`pop-item ${x.id === value ? 'on' : ''}`} style={{ background: 'var(--panel-2)', flexDirection: 'column', alignItems: 'flex-start', gap: 2 }}
               onClick={() => { onChange(x.id); setOpen(false); }}>
-              <span style={{ fontWeight: 600 }}>{x.label} <small className="dim">· {x.vendor}</small></span>
-              <small>{x.note}</small>
+              <span style={{ fontWeight: 600 }}>{tr(x.label)} <small className="dim">· {x.vendor}</small></span>
+              <small>{tr(x.note)}</small>
             </button>
           ))}
         </div>
@@ -324,8 +325,8 @@ export function Well({ onFiles, compact, loop }: { onFiles: (f: FileList | File[
       onClick={() => input.current?.click()} {...zone.props}>
       <input ref={input} type="file" accept="image/*" multiple hidden onChange={(e) => e.target.files && onFiles(e.target.files)} />
       {!compact && <div className="well-icons"><span><Icon name="image" /></span></div>}
-      <div style={{ fontWeight: 600, color: 'var(--text)' }}>{compact ? '+ Add frame' : loop ? 'Add the image to loop' : 'Add start or end frame'}</div>
-      {!compact && <div style={{ fontSize: 12, marginTop: 2 }}>{loop ? 'It becomes the first and last frame' : 'Optional. Drop images, or skip for text to video'}</div>}
+      <div style={{ fontWeight: 600, color: 'var(--text)' }}>{compact ? tr('+ Add frame') : loop ? tr('Add the image to loop') : tr('Add start or end frame')}</div>
+      {!compact && <div style={{ fontSize: 12, marginTop: 2 }}>{loop ? tr('It becomes the first and last frame') : tr('Optional. Drop images, or skip for text to video')}</div>}
     </div>
   );
 }
@@ -333,24 +334,24 @@ export function Well({ onFiles, compact, loop }: { onFiles: (f: FileList | File[
 export function PresetPicker({ value, onPick }: { value: string; onPick: (id: string) => void }) {
   const [cat, setCat] = useState<string>('all');
   const [q, setQ] = useState('');
-  const list = PRESETS.filter((p) => (cat === 'all' || p.cat === cat) && (!q || p.name.toLowerCase().includes(q.toLowerCase())));
+  const list = PRESETS.filter((p) => (cat === 'all' || p.cat === cat) && (!q || `${p.name} ${tr(p.name)}`.toLowerCase().includes(q.toLowerCase())));
   return (
     <div className="picker">
       <div className="picker-top">
         {PRESET_CATS.map((c) => (
-          <button key={c.id} type="button" className={`pill ${cat === c.id ? 'active' : ''}`} onClick={() => setCat(c.id)}>{c.label}</button>
+          <button key={c.id} type="button" className={`pill ${cat === c.id ? 'active' : ''}`} onClick={() => setCat(c.id)}>{tr(c.label)}</button>
         ))}
         <div style={{ marginLeft: 'auto', position: 'relative' }}>
-          <input className="field" style={{ width: 200, padding: '7px 10px 7px 30px' }} placeholder="Search presets" value={q} onChange={(e) => setQ(e.target.value)} />
+          <input className="field" style={{ width: 200, padding: '7px 10px 7px 30px' }} placeholder={tr("Search presets")} value={q} onChange={(e) => setQ(e.target.value)} />
           <span style={{ position: 'absolute', left: 10, top: 9, color: 'var(--mute)' }}><Icon name="search" size={14} /></span>
         </div>
       </div>
       <div className="picker-grid">
         {list.map((p) => (
-          <button key={p.id} type="button" className={`preset-card ${p.id === value ? 'on' : ''}`} onClick={() => onPick(p.id)} title={p.text || 'No camera direction'}>
+          <button key={p.id} type="button" className={`preset-card ${p.id === value ? 'on' : ''}`} onClick={() => onPick(p.id)} title={p.text || tr('No camera direction')}>
             <PresetArt id={p.id} hue={p.hue} />
-            <span className="cat badge">{PRESET_CATS.find((c) => c.id === p.cat)?.label}</span>
-            <span className="name">{p.name}</span>
+            <span className="cat badge">{tr(PRESET_CATS.find((c) => c.id === p.cat)?.label)}</span>
+            <span className="name">{tr(p.name)}</span>
           </button>
         ))}
       </div>
@@ -375,12 +376,12 @@ function PresetArt({ id, hue }: { id: string; hue: number }) {
 function HowItWorks() {
   return (
     <div className="hero-empty">
-      <div className="label" style={{ marginBottom: 14 }}>Runs on your GPU · open weights</div>
-      <div className="display" style={{ fontSize: 'clamp(34px,4.6vw,60px)' }}>Direct a shot <span className="hl">in three moves</span></div>
+      <div className="label" style={{ marginBottom: 14 }}>{tr("Runs on your GPU · open weights")}</div>
+      <div className="display" style={{ fontSize: 'clamp(34px,4.6vw,60px)' }}>{tr("Direct a shot ")}<span className="hl">{tr("in three moves")}</span></div>
       <div className="steps3">
-        <div><span className="label">01</span><b>Add a frame</b><span className="dim">Drop a still, or skip it and go text to video.</span></div>
-        <div><span className="label">02</span><b>Pick the motion</b><span className="dim">Camera moves and effects, as presets.</span></div>
-        <div><span className="label">03</span><b>Generate</b><span className="dim">LTX-2.5 renders it locally, no credits.</span></div>
+        <div><span className="label">01</span><b>{tr("Add a frame")}</b><span className="dim">{tr("Drop a still, or skip it and go text to video.")}</span></div>
+        <div><span className="label">02</span><b>{tr("Pick the motion")}</b><span className="dim">{tr("Camera moves and effects, as presets.")}</span></div>
+        <div><span className="label">03</span><b>{tr("Generate")}</b><span className="dim">{tr("LTX-2.5 renders it locally, no credits.")}</span></div>
       </div>
     </div>
   );

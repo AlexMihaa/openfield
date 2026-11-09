@@ -5,6 +5,7 @@
  * one object (SAM 3.1), replaces it in frame 0 and redraws only that region
  * through the clip (LTX in/outpainting IC-LoRA). One click each, one take each.
  */
+import { tr } from '../i18n';
 import { useRef, useState } from 'react';
 import { api, inputUrl, uploadFile } from '../api';
 import {
@@ -44,12 +45,12 @@ export function RestyleControls({ clip }: { clip: MirrorClip | null }) {
 
   async function go() {
     if (!clip || !look) return;
-    setBusy('Queuing...');
+    setBusy(tr('Queuing...'));
     try {
       const r = await api.generate(restyleBody());
-      toast(`Queued ${r.takeIds.length} restyle${r.takeIds.length > 1 ? 's' : ''}`);
+      toast(tr("Queued restyles: {0}", { 0: r.takeIds.length }));
     } catch (e) {
-      toast(e instanceof Error ? e.message : 'failed', true);
+      toast(e instanceof Error ? e.message : tr('failed'), true);
     } finally {
       setBusy(null);
     }
@@ -58,29 +59,29 @@ export function RestyleControls({ clip }: { clip: MirrorClip | null }) {
   return (
     <>
       <div className="rail-section">
-        <div className="label">Style</div>
+        <div className="label">{tr("Style")}</div>
         <div className="chip-row">
           {RESTYLE_STYLES.map((s) => (
-            <button key={s.id} type="button" className={`chip ${style === s.id ? 'on' : ''}`} onClick={() => setStyle(style === s.id ? null : s.id)}>{s.label}</button>
+            <button key={s.id} type="button" className={`chip ${style === s.id ? 'on' : ''}`} onClick={() => setStyle(style === s.id ? null : s.id)}>{tr(s.label)}</button>
           ))}
         </div>
       </div>
 
       <div className="rail-section">
-        <div className="label">{style ? 'Add to the look · optional' : 'The look'}</div>
+        <div className="label">{style ? tr('Add to the look · optional') : tr('The look')}</div>
         <textarea className="prompt" rows={3} value={text} onChange={(e) => setText(e.target.value)}
-          placeholder={style ? 'warm autumn colors, falling leaves' : 'a hand-painted 1930s cartoon, rubber-hose limbs, sepia film'} />
+          placeholder={style ? tr('warm autumn colors, falling leaves') : tr('a hand-painted 1930s cartoon, rubber-hose limbs, sepia film')} />
       </div>
 
       <div className="rail-section">
-        <div className="label">Keep from the clip</div>
+        <div className="label">{tr("Keep from the clip")}</div>
         <div className="seg">
           {RESTYLE_CONTROLS.map((c) => (
-            <button key={c.id} type="button" className={control === c.id ? 'on' : ''} onClick={() => setControl(c.id as 'depth' | 'edges')}>{c.label}</button>
+            <button key={c.id} type="button" className={control === c.id ? 'on' : ''} onClick={() => setControl(c.id as 'depth' | 'edges')}>{tr(c.label)}</button>
           ))}
         </div>
-        <div className="dim" style={{ fontSize: 12.5 }}>{RESTYLE_CONTROLS.find((c) => c.id === control)!.note}</div>
-        <div style={{ display: 'flex', justifyContent: 'space-between' }}><span className="label">Hold to the clip</span><span className="mono dim" style={{ fontSize: 12 }}>{Math.round(strength * 100)}%</span></div>
+        <div className="dim" style={{ fontSize: 12.5 }}>{tr(RESTYLE_CONTROLS.find((c) => c.id === control)!.note)}</div>
+        <div style={{ display: 'flex', justifyContent: 'space-between' }}><span className="label">{tr("Hold to the clip")}</span><span className="mono dim" style={{ fontSize: 12 }}>{Math.round(strength * 100)}%</span></div>
         <input type="range" min={0.4} max={1} step={0.05} value={strength} onChange={(e) => setStrength(Number(e.target.value))} style={{ accentColor: 'var(--accent)' }} />
       </div>
 
@@ -88,12 +89,12 @@ export function RestyleControls({ clip }: { clip: MirrorClip | null }) {
         <span className="chip"><Icon name="clock" size={14} />{seconds}s</span>
         <TierChip app="restyle" value={res} onChange={setRes} />
         <Stepper value={count} min={1} max={4} onChange={setCount} fmt={(v) => `${v}/4`} />
-        <span className="chip" style={{ gap: 10 }}><Icon name="audio" size={14} />Sound <Switch on={audio} onChange={setAudio} label="sound" /></span>
+        <span className="chip" style={{ gap: 10 }}><Icon name="audio" size={14} />{tr("Sound ")}<Switch on={audio} onChange={setAudio} label={tr("sound")} /></span>
       </div>
 
       <button type="button" className="generate" style={{ marginTop: 'auto' }} disabled={!!busy || !clip || !look} onClick={() => void go()}>
-        <span>{busy ?? 'Restyle it'}</span>
-        <span className="cost">{size.w}x{size.h}{est ? ` · ${fmtSeconds(est * count)}` : ' · Qwen-Image-Edit + LTX-2.5'}</span>
+        <span>{tr(busy) ?? tr('Restyle it')}</span>
+        <span className="cost">{size.w}x{size.h}{est ? ` · ${fmtSeconds(est * count)}` : tr(' · Qwen-Image-Edit + LTX-2.5')}</span>
       </button>
     </>
   );
@@ -115,7 +116,7 @@ export function SwapControls({ clip }: { clip: MirrorClip | null }) {
 
   async function addReference(f: File) {
     if (!f.type.startsWith('image/')) return;
-    setBusy('Uploading...');
+    setBusy(tr('Uploading...'));
     try { setReference(await uploadFile(f)); } catch (e) { toast(String(e), true); } finally { setBusy(null); }
   }
 
@@ -132,12 +133,12 @@ export function SwapControls({ clip }: { clip: MirrorClip | null }) {
 
   async function go() {
     if (!clip) return;
-    setBusy('Queuing...');
+    setBusy(tr('Queuing...'));
     try {
       const r = await api.generate(swapBody());
-      toast(`Queued ${r.takeIds.length} swap${r.takeIds.length > 1 ? 's' : ''}`);
+      toast(tr("Queued swaps: {0}", { 0: r.takeIds.length }));
     } catch (e) {
-      toast(e instanceof Error ? e.message : 'failed', true);
+      toast(e instanceof Error ? e.message : tr('failed'), true);
     } finally {
       setBusy(null);
     }
@@ -147,31 +148,31 @@ export function SwapControls({ clip }: { clip: MirrorClip | null }) {
     <>
       {clip && (
         <div className="rail-section">
-          <div className="label">Click the object · optional</div>
+          <div className="label">{tr("Click the object · optional")}</div>
           <div className="ref" style={{ aspectRatio: `${clip.w || 16} / ${clip.h || 9}`, cursor: 'crosshair' }}
             onClick={(e) => { const r = e.currentTarget.getBoundingClientRect(); setPoint({ x: (e.clientX - r.left) / r.width, y: (e.clientY - r.top) / r.height }); }}>
             <video ref={frame} src={clip.url} muted playsInline preload="auto" onLoadedData={() => { if (frame.current) frame.current.currentTime = 0; }} />
             {point && <span className="pin" style={{ left: `${point.x * 100}%`, top: `${point.y * 100}%` }} />}
-            <span className="role">first frame</span>
-            {point && <button type="button" className="x" onClick={(e) => { e.stopPropagation(); setPoint(null); }} aria-label="clear the point"><Icon name="x" size={12} /></button>}
+            <span className="role">{tr("first frame")}</span>
+            {point && <button type="button" className="x" onClick={(e) => { e.stopPropagation(); setPoint(null); }} aria-label={tr("clear the point")}><Icon name="x" size={12} /></button>}
           </div>
-          <div className="label" style={{ textTransform: 'none', letterSpacing: 0 }}>A click picks one object when there are several. Without one, the words below find it.</div>
+          <div className="label" style={{ textTransform: 'none', letterSpacing: 0 }}>{tr("A click picks one object when there are several. Without one, the words below find it.")}</div>
         </div>
       )}
 
       <div className="rail-section">
-        <div className="label">Replace</div>
-        <input className="field" value={target} onChange={(e) => setTarget(e.target.value)} placeholder="the red car" />
-        <div className="label">With</div>
-        <textarea className="prompt" rows={2} value={replacement} onChange={(e) => setReplacement(e.target.value)} placeholder="a white horse at full gallop" />
+        <div className="label">{tr("Replace")}</div>
+        <input className="field" value={target} onChange={(e) => setTarget(e.target.value)} placeholder={tr("the red car")} />
+        <div className="label">{tr("With")}</div>
+        <textarea className="prompt" rows={2} value={replacement} onChange={(e) => setReplacement(e.target.value)} placeholder={tr("a white horse at full gallop")} />
         {reference ? (
           <div className="ref" style={{ aspectRatio: '1' , maxWidth: 120 }}>
-            <img src={inputUrl(reference)} alt="" />
-            <span className="role">looks like this</span>
-            <button type="button" className="x" onClick={() => setReference(null)} aria-label="remove"><Icon name="x" size={12} /></button>
+            <img src={inputUrl(reference)} alt={""} />
+            <span className="role">{tr("looks like this")}</span>
+            <button type="button" className="x" onClick={() => setReference(null)} aria-label={tr("remove")}><Icon name="x" size={12} /></button>
           </div>
         ) : (
-          <DropWell accept="image/*" onFile={(f) => void addReference(f)} icon="ref" compact title="+ Picture of the new object · optional" sub="" />
+          <DropWell accept="image/*" onFile={(f) => void addReference(f)} icon="ref" compact title={tr("+ Picture of the new object · optional")} sub="" />
         )}
       </div>
 
@@ -182,8 +183,8 @@ export function SwapControls({ clip }: { clip: MirrorClip | null }) {
       </div>
 
       <button type="button" className="generate" style={{ marginTop: 'auto' }} disabled={!!busy || !clip || !target.trim() || (!replacement.trim() && !reference)} onClick={() => void go()}>
-        <span>{busy ?? 'Swap it'}</span>
-        <span className="cost">{size.w}x{size.h}{est ? ` · ${fmtSeconds(est * count)}` : ' · SAM 3.1 + LTX-2.5 inpaint'}</span>
+        <span>{tr(busy) ?? tr('Swap it')}</span>
+        <span className="cost">{size.w}x{size.h}{est ? ` · ${fmtSeconds(est * count)}` : tr(' · SAM 3.1 + LTX-2.5 inpaint')}</span>
       </button>
     </>
   );

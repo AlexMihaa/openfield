@@ -4,6 +4,7 @@
  * The server reads each file's family from its tensor keys, so the menu only
  * lists LoRAs made for the model the app is running (server/loras.ts).
  */
+import { tr } from './i18n';
 import { useEffect, useRef, useState } from 'react';
 import { Icon, useClickAway } from './ui';
 
@@ -66,22 +67,22 @@ export function LoraChips({ family, value, onChange, dir = 'up' }: {
     <>
       <div className="pop-wrap" ref={ref}>
         <button type="button" className={`chip ${value.length ? 'on' : ''}`} onClick={() => setOpen(!open)}
-          title="Add your own LoRA: a character, a style, a motion">
+          title={tr("Add your own LoRA: a character, a style, a motion")}>
           <Icon name="bolt" size={14} />
-          <span>{value.length ? `LoRA ${value.length}` : 'LoRA'}</span>
+          <span>{value.length ? tr("LoRA {0}", { 0: value.length }) : tr('LoRA')}</span>
         </button>
         {open && (
           <div className={`popover ${dir}`} style={{ left: 0, maxHeight: 340, overflowY: 'auto', minWidth: 260 }}>
-            <div className="pop-title label">Your LoRAs</div>
+            <div className="pop-title label">{tr("Your LoRAs")}</div>
             {free.map((l) => (
               <button key={l.name} type="button" className="pop-item" disabled={value.length >= MAX} onClick={() => add(l.name)}>
                 <span>{short(l.name)}</span>
-                {(l.trigger || l.family === null) && <small>{l.trigger ? `trigger: ${l.trigger}` : 'could not read its model'}</small>}
+                {(l.trigger || l.family === null) && <small>{l.trigger ? tr("trigger: {0}", { 0: l.trigger }) : tr('could not read its model')}</small>}
               </button>
             ))}
             {!free.length && (
               <div className="pop-item" style={{ cursor: 'default' }}>
-                <small>{fits.length ? 'All added.' : "No LoRAs for this model yet. Put .safetensors files in ComfyUI's models/loras folder; they show up without a restart."}</small>
+                <small>{fits.length ? tr('All added.') : tr("No LoRAs for this model yet. Put .safetensors files in ComfyUI's models/loras folder; they show up without a restart.")}</small>
               </div>
             )}
           </div>
@@ -90,10 +91,10 @@ export function LoraChips({ family, value, onChange, dir = 'up' }: {
       {value.map((p, i) => (
         <span key={p.name} className="chip on lora-pick" title={p.name}>
           <span className="lora-name">{short(p.name)}</span>
-          <button type="button" onClick={() => nudge(i, -0.1)} aria-label="weaker"><Icon name="minus" size={11} /></button>
+          <button type="button" onClick={() => nudge(i, -0.1)} aria-label={tr("weaker")}><Icon name="minus" size={11} /></button>
           <span className="lora-w">{p.strength.toFixed(1)}</span>
-          <button type="button" onClick={() => nudge(i, 0.1)} aria-label="stronger"><Icon name="plus" size={11} /></button>
-          <button type="button" onClick={() => onChange(value.filter((_, j) => j !== i))} aria-label="remove"><Icon name="x" size={11} /></button>
+          <button type="button" onClick={() => nudge(i, 0.1)} aria-label={tr("stronger")}><Icon name="plus" size={11} /></button>
+          <button type="button" onClick={() => onChange(value.filter((_, j) => j !== i))} aria-label={tr("remove")}><Icon name="x" size={11} /></button>
         </span>
       ))}
     </>

@@ -1,4 +1,5 @@
 /** Shared UI kit: icons, chips with menus, media cards, GPU chip, logo. */
+import { tr } from './i18n';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { api, posterUrl, mediaUrl, turntableUrl, type Take } from './api';
 import { isActive, isImage, isModel, refreshStatus, settingsOf, toast, useStore } from './store';
@@ -57,7 +58,7 @@ export function Icon({ name, size = 16 }: { name: keyof typeof P | string; size?
 export function Logo({ size = 26 }: { size?: number }) {
   // A field of points; one is lit.
   return (
-    <svg width={size} height={size} viewBox="0 0 26 26" aria-label="OpenField">
+    <svg width={size} height={size} viewBox="0 0 26 26" aria-label={tr("OpenField")}>
       <rect width="26" height="26" rx="7" fill="#1a1917" />
       {[0, 1, 2].flatMap((r) => [0, 1, 2].map((c) => (
         <circle key={`${r}${c}`} cx={7 + c * 6} cy={7 + r * 6} r={r === 0 && c === 2 ? 2.6 : 1.5}
@@ -73,7 +74,7 @@ export function Logo({ size = 26 }: { size?: number }) {
 export function Spill({ src, video }: { src: string; video?: boolean }) {
   return (
     <div className="spill" aria-hidden>
-      {video ? <video src={src} muted loop autoPlay playsInline preload="metadata" /> : <img src={src} alt="" />}
+      {video ? <video src={src} muted loop autoPlay playsInline preload="metadata" /> : <img src={src} alt={""} />}
     </div>
   );
 }
@@ -109,19 +110,19 @@ export function ChipMenu<T extends string | number>(props: {
   const cur = props.options.find((o) => o.value === props.value);
   return (
     <div className="pop-wrap" ref={ref}>
-      <button type="button" className="chip" onClick={() => setOpen(!open)} title={props.title}>
+      <button type="button" className="chip" onClick={() => setOpen(!open)} title={tr(props.title)}>
         {props.icon && <Icon name={props.icon} size={14} />}
-        {props.label && <span className="dim">{props.label}</span>}
-        <span>{cur?.label ?? String(props.value)}</span>
+        {props.label && <span className="dim">{tr(props.label)}</span>}
+        <span>{tr(cur?.label) ?? String(props.value)}</span>
       </button>
       {open && (
         <div className={`popover ${props.dir ?? 'up'}`} style={props.dir === 'down' ? undefined : { left: 0 }}>
-          {props.title && <div className="pop-title label">{props.title}</div>}
+          {props.title && <div className="pop-title label">{tr(props.title)}</div>}
           {props.options.map((o) => (
             <button key={String(o.value)} type="button" disabled={o.disabled}
               className={`pop-item ${o.value === props.value ? 'on' : ''}`}
               onClick={() => { props.onChange(o.value); setOpen(false); }}>
-              <span>{o.label}</span>{o.note && <small>{o.note}</small>}
+              <span>{tr(o.label)}</span>{o.note && <small>{tr(o.note)}</small>}
             </button>
           ))}
         </div>
@@ -133,15 +134,15 @@ export function ChipMenu<T extends string | number>(props: {
 export function Stepper({ value, min, max, onChange, fmt }: { value: number; min: number; max: number; onChange: (v: number) => void; fmt?: (v: number) => string }) {
   return (
     <div className="stepper">
-      <button type="button" onClick={() => onChange(Math.max(min, value - 1))} aria-label="fewer"><Icon name="minus" size={13} /></button>
+      <button type="button" onClick={() => onChange(Math.max(min, value - 1))} aria-label={tr("fewer")}><Icon name="minus" size={13} /></button>
       <span>{fmt ? fmt(value) : value}</span>
-      <button type="button" onClick={() => onChange(Math.min(max, value + 1))} aria-label="more"><Icon name="plus" size={13} /></button>
+      <button type="button" onClick={() => onChange(Math.min(max, value + 1))} aria-label={tr("more")}><Icon name="plus" size={13} /></button>
     </div>
   );
 }
 
 export function Switch({ on, onChange, label }: { on: boolean; onChange: (v: boolean) => void; label?: string }) {
-  return <button type="button" role="switch" aria-checked={on} aria-label={label} className={`switch ${on ? 'on' : ''}`} onClick={() => onChange(!on)} />;
+  return <button type="button" role="switch" aria-checked={on} aria-label={tr(label)} className={`switch ${on ? 'on' : ''}`} onClick={() => onChange(!on)} />;
 }
 
 export function Toast() {
@@ -173,7 +174,7 @@ export function TierChip({ app, value, onChange }: { app: TierApp; value: Render
   const max = judge && APP_MAX_TIER[app] === '1080p' ? '720p' : APP_MAX_TIER[app];
   return (
     <ChipMenu icon="res" value={value} onChange={onChange}
-      title={tierCapNote(app) ?? 'Render size'}
+      title={tr(tierCapNote(app)) ?? tr('Render size')}
       options={tiersUpTo(max).map((t) => ({ value: t.id, label: t.id, note: t.short }))} />
   );
 }
@@ -189,25 +190,25 @@ export function RenderTierPicker({ compact }: { compact?: boolean }) {
       await api.setRenderTier(t);
       await refreshStatus();
     } catch (e) {
-      toast(e instanceof Error ? e.message : 'could not save the render size', true);
+      toast(e instanceof Error ? e.message : tr('could not save the render size'), true);
     } finally {
       setBusy(false);
     }
   }
   const cur = st?.tier ?? '720p';
-  const why = !st ? '' : st.source === 'env' ? 'Set by OPENFIELD_RENDER_TIER.' : st.source === 'gpu' ? 'Picked for this card.' : `Your pick. This card's default is ${st.auto}.`;
+  const why = !st ? '' : st.source === 'env' ? tr('Set by OPENFIELD_RENDER_TIER.') : st.source === 'gpu' ? tr('Picked for this card.') : tr("Your pick. This card's default is {0}.", { 0: st.auto });
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 6, width: '100%' }}>
       <div className="seg">
         {RENDER_TIERS.map((t) => (
-          <button key={t.id} type="button" className={cur === t.id ? 'on' : ''} disabled={busy || judge} title={t.note} onClick={() => void pick(t.id)}>
-            {compact ? t.id : t.label}
+          <button key={t.id} type="button" className={cur === t.id ? 'on' : ''} disabled={busy || judge} title={tr(t.note)} onClick={() => void pick(t.id)}>
+            {compact ? t.id : tr(t.label)}
           </button>
         ))}
       </div>
       <div className="dim" style={{ fontSize: 12 }}>
-        {judge ? 'Fixed in the judge preview.' : <>{tierDef(cur).note} {why}</>}
-        {!judge && st?.source === 'user' && <> <button type="button" className="linkish" disabled={busy} onClick={() => void pick(null)}>Use the default</button></>}
+        {judge ? tr('Fixed in the judge preview.') : <>{tr(tierDef(cur).note)} {tr(why)}</>}
+        {!judge && st?.source === 'user' && <> <button type="button" className="linkish" disabled={busy} onClick={() => void pick(null)}>{tr("Use the default")}</button></>}
       </div>
     </div>
   );
@@ -224,7 +225,7 @@ export function VideoDecodePicker() {
       await api.setVideoDecode(m);
       await refreshStatus();
     } catch (e) {
-      toast(e instanceof Error ? e.message : 'could not save the video decode', true);
+      toast(e instanceof Error ? e.message : tr('could not save the video decode'), true);
     } finally {
       setBusy(false);
     }
@@ -232,19 +233,19 @@ export function VideoDecodePicker() {
   const cur = st?.mode ?? 'whole';
   const def = VIDEO_DECODES.find((d) => d.id === cur) ?? VIDEO_DECODES[0];
   const autoLabel = VIDEO_DECODES.find((d) => d.id === st?.auto)?.label.toLowerCase() ?? '';
-  const why = !st ? '' : st.source === 'env' ? 'Set by OPENFIELD_VIDEO_DECODE.' : st.source === 'gpu' ? 'Picked for this GPU.' : `Your pick. This GPU's default is ${autoLabel}.`;
+  const why = !st ? '' : st.source === 'env' ? tr('Set by OPENFIELD_VIDEO_DECODE.') : st.source === 'gpu' ? tr('Picked for this GPU.') : tr("Your pick. This GPU's default is {0}.", { 0: tr(autoLabel) });
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 6, width: '100%' }}>
       <div className="seg">
         {VIDEO_DECODES.map((d) => (
-          <button key={d.id} type="button" className={cur === d.id ? 'on' : ''} disabled={busy || judge} title={d.note} onClick={() => void pick(d.id)}>
-            {d.label}
+          <button key={d.id} type="button" className={cur === d.id ? 'on' : ''} disabled={busy || judge} title={tr(d.note)} onClick={() => void pick(d.id)}>
+            {tr(d.label)}
           </button>
         ))}
       </div>
       <div className="dim" style={{ fontSize: 12 }}>
-        {judge ? 'Fixed in the judge preview.' : <>{def.note} {why}</>}
-        {!judge && st?.source === 'user' && <> <button type="button" className="linkish" disabled={busy} onClick={() => void pick(null)}>Use the default</button></>}
+        {judge ? tr('Fixed in the judge preview.') : <>{tr(def.note)} {tr(why)}</>}
+        {!judge && st?.source === 'user' && <> <button type="button" className="linkish" disabled={busy} onClick={() => void pick(null)}>{tr("Use the default")}</button></>}
       </div>
     </div>
   );
@@ -267,29 +268,29 @@ export function GpuChip() {
     <div className="pop-wrap" ref={ref}>
       <button type="button" className="gpu-chip" onClick={() => setOpen(!open)}>
         <span className={`dot ${state}`} />
-        <span className="mono">{st?.up ? gpu : 'Engine off'}</span>
-        {st?.up && st.target !== 'cloud' && <span className="vram" title="VRAM in use"><i style={{ width: `${pct}%` }} /></span>}
-        {active > 0 && <span className="badge">{active} in queue</span>}
+        <span className="mono">{st?.up ? gpu : tr('Engine off')}</span>
+        {st?.up && st.target !== 'cloud' && <span className="vram" title={tr("VRAM in use")}><i style={{ width: `${pct}%` }} /></span>}
+        {active > 0 && <span className="badge">{active} {tr("in queue")}</span>}
       </button>
       {open && (
         <div className="popover down" style={{ width: 300, padding: 12 }}>
-          <div className="label" style={{ marginBottom: 8 }}>Engine</div>
+          <div className="label" style={{ marginBottom: 8 }}>{tr("Engine")}</div>
           <dl className="kv">
-            <dt>Target</dt><dd>{st?.target === 'cloud' ? 'Comfy Cloud' : 'Local ComfyUI'}</dd>
-            <dt>ComfyUI</dt><dd>{st?.up ? `v${st.version ?? '?'}` : 'not answering'}</dd>
-            <dt>Comfy API v2</dt><dd>{st?.api ? 'up' : 'down'}</dd>
-            {used !== undefined && <><dt>VRAM</dt><dd>{used.toFixed(1)} / {st!.vramTotalGb!.toFixed(1)} GB</dd></>}
-            <dt>Jobs</dt><dd>{active ? `${active} active` : 'idle'}</dd>
-            {onEngine > active && <><dt className="dim">Engine queue</dt><dd className="dim">{onEngine} on the engine</dd></>}
+            <dt>{tr("Target")}</dt><dd>{st?.target === 'cloud' ? tr('Comfy Cloud') : tr('Local ComfyUI')}</dd>
+            <dt>{tr("ComfyUI")}</dt><dd>{st?.up ? `v${st.version ?? '?'}` : tr('not answering')}</dd>
+            <dt>{tr("Comfy API v2")}</dt><dd>{st?.api ? tr('up') : tr('down')}</dd>
+            {used !== undefined && <><dt>{tr("VRAM")}</dt><dd>{used.toFixed(1)} / {st!.vramTotalGb!.toFixed(1)} {tr("GB")}</dd></>}
+            <dt>{tr("Jobs")}</dt><dd>{active ? tr("{0} active", { 0: active }) : tr('idle')}</dd>
+            {onEngine > active && <><dt className="dim">{tr("Engine queue")}</dt><dd className="dim">{onEngine} {tr("on the engine")}</dd></>}
           </dl>
-          <div className="label" style={{ margin: '12px 0 6px' }}>Render size</div>
+          <div className="label" style={{ margin: '12px 0 6px' }}>{tr("Render size")}</div>
           <RenderTierPicker compact />
           <div style={{ display: 'flex', gap: 6, marginTop: 12, flexWrap: 'wrap' }}>
             {!st?.up && st?.canLaunch && (
-              <button type="button" className="btn sm accent" onClick={() => { toast('Starting the engine...'); void api.startEngine(); }}>Start engine</button>
+              <button type="button" className="btn sm accent" onClick={() => { toast(tr('Starting the engine...')); void api.startEngine(); }}>{tr("Start engine")}</button>
             )}
-            {st?.up && <button type="button" className="btn sm" onClick={() => void api.free().then(() => toast('VRAM freed'))}>Free VRAM</button>}
-            {active > 0 && <button type="button" className="btn sm danger" onClick={() => void api.clearQueue()}>Stop all</button>}
+            {st?.up && <button type="button" className="btn sm" onClick={() => void api.free().then(() => toast(tr('VRAM freed')))}>{tr("Free VRAM")}</button>}
+            {active > 0 && <button type="button" className="btn sm danger" onClick={() => void api.clearQueue()}>{tr("Stop all")}</button>}
           </div>
         </div>
       )}
@@ -321,10 +322,10 @@ export function MediaCard({ take, onOpen, actions, pendingLabel, tag }: { take: 
     const pct = progress ? Math.round((progress.value / Math.max(1, progress.max)) * 100) : 0;
     return (
       <div className="card pending" style={style}>
-        {running && preview && preview.promptId === take.prompt_id && <img src={preview.url} alt="" style={{ opacity: 0.85, filter: 'saturate(.9)' }} />}
+        {running && preview && preview.promptId === take.prompt_id && <img src={preview.url} alt={""} style={{ opacity: 0.85, filter: 'saturate(.9)' }} />}
         <div className="status">
           <div>
-            <div className="label" style={{ color: 'var(--accent)' }}>{running ? (progress?.max && progress.max !== 100 ? `Step ${progress.value}/${progress.max}` : 'Rendering') : first ? 'Waiting for the engine' : pendingLabel ?? 'Queued'}</div>
+            <div className="label" style={{ color: 'var(--accent)' }}>{running ? (progress?.max && progress.max !== 100 ? tr("Step {0}/{1}", { 0: progress.value, 1: progress.max }) : tr('Rendering')) : first ? tr('Waiting for the engine') : pendingLabel ?? tr('Queued')}</div>
           </div>
         </div>
         <div className="progress"><i style={{ width: `${running ? pct : 0}%` }} /></div>
@@ -334,7 +335,7 @@ export function MediaCard({ take, onOpen, actions, pendingLabel, tag }: { take: 
   if (take.status !== 'done' || !take.output_path) {
     return (
       <div className="card failed" style={style} title={take.error ?? ''}>
-        <div className="status"><div><div className="label">{take.status}</div><div style={{ marginTop: 6, fontSize: 12 }}>{(take.error ?? '').slice(0, 110)}</div></div></div>
+        <div className="status"><div><div className="label">{tr(take.status)}</div><div style={{ marginTop: 6, fontSize: 12 }}>{(take.error ?? '').slice(0, 110)}</div></div></div>
         <div className="quick" style={{ opacity: 1 }}>{actions}</div>
       </div>
     );
@@ -346,15 +347,15 @@ export function MediaCard({ take, onOpen, actions, pendingLabel, tag }: { take: 
       {...takeDragProps(take.id, (take.output_path ?? `take_${take.id}`).split(/[\\/]/).pop()!, image ? 'image/png' : model ? 'model/gltf-binary' : 'video/mp4')}
       onMouseEnter={() => { const v = vref.current; if (v) { v.muted = true; void v.play().catch(() => {}); } }}
       onMouseLeave={() => { const v = vref.current; if (v) { v.pause(); v.currentTime = 0; } }}>
-      <img src={posterUrl(take.id)} alt="" loading="lazy" />
+      <img src={posterUrl(take.id)} alt={""} loading="lazy" />
       {!image && <video ref={vref} src={model ? turntableUrl(take.id) : mediaUrl(take.id)} muted loop playsInline preload="none" />}
       <div className="kind">
-        {tag && <span className="badge" style={{ marginRight: 4 }}>{tag}</span>}
+        {tag && <span className="badge" style={{ marginRight: 4 }}>{tr(tag)}</span>}
         {model && <span className="badge cool">3D</span>}
-        {!image && !model && <span className="badge cool">{s.outSeconds ?? s.seconds ? `${s.outSeconds ?? s.seconds}s` : 'video'}</span>}
-        {s.cut && <span className="badge cool" style={{ marginLeft: 4 }}>{(s.shots ?? []).length} shots</span>}
-        {!image && s.seam && <span className={`badge seam ${s.seam.verdict === 'seamless' ? 'ok' : 'bad'}`} title={`Loop point: ${s.seam.ratio}x a frame step`}>{s.seam.verdict === 'seamless' ? 'Seamless' : 'Visible seam'}</span>}
-        {!image && s.app === 'hdr' && <span className="badge">HDR</span>}
+        {!image && !model && <span className="badge cool">{s.outSeconds ?? s.seconds ? `${s.outSeconds ?? s.seconds}s` : tr('video')}</span>}
+        {s.cut && <span className="badge cool" style={{ marginLeft: 4 }}>{(s.shots ?? []).length} {tr("shots")}</span>}
+        {!image && s.seam && <span className={`badge seam ${s.seam.verdict === 'seamless' ? 'ok' : 'bad'}`} title={tr("Loop point: {0}x a frame step", { 0: s.seam.ratio })}>{s.seam.verdict === 'seamless' ? tr('Seamless') : tr('Visible seam')}</span>}
+        {!image && s.app === 'hdr' && <span className="badge">{tr("HDR")}</span>}
       </div>
       <div className="quick" onClick={(e) => e.stopPropagation()}>{actions}</div>
       <div className="scrim" />
@@ -390,9 +391,6 @@ export function JudgeBanner() {
   if (!j) return null;
   return (
     <div className="judge-banner" role="note">
-      <b>Judge preview.</b> This runs on a rented GPU with draft limits: up to {j.maxSeconds} seconds, 720p and one take per render.
-      {' '}Setup is read-only, and phone capture, project folders and deleting are off.
-      {' '}<span className="mono">{j.left} of {j.cap}</span> renders left today.
-    </div>
+      <b>{tr("Judge preview.")}</b> {tr("This runs on a rented GPU with draft limits: up to ")}{j.maxSeconds} {tr("seconds, 720p and one take per render.")}{' '}{tr("Setup is read-only, and phone capture, project folders and deleting are off.")}{' '}<span className="mono">{j.left} {tr("of ")}{j.cap}</span> {tr("renders left today.")}</div>
   );
 }

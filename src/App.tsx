@@ -1,4 +1,5 @@
 /** OpenField shell: top bar + routed page. */
+import { tr, setLocale, useLocale } from './i18n';
 import { lazy, Suspense, useEffect } from 'react';
 import { APPS, badgeLabel } from './catalog';
 import { linkProps, useRoute } from './router';
@@ -35,6 +36,7 @@ const APP_LINKS = APPS.filter((a) => ['director', 'stage', 'loop', 'mirror', 're
 
 export default function App() {
   const { path, params } = useRoute();
+  const locale = useLocale();
   useEffect(() => { startLive(); }, []);
   const drop = useGlobalDrop();
   const judge = useStore((s) => !!s.status?.judge);
@@ -64,8 +66,8 @@ export default function App() {
   useEffect(() => {
     const name = path === '/' ? 'Explore' : path === '/setup' ? 'Setup' : path === '/library' ? 'Library'
       : APPS.find((a) => a.route.split('?')[0] === path)?.name ?? SECTIONS.find((s) => s.to === path)?.label;
-    document.title = name ? `${name} · OpenField` : 'OpenField';
-  }, [path]);
+    document.title = name ? `${tr(name)} · OpenField` : 'OpenField';
+  }, [path, locale]);
 
   const isActive = (to: string) => {
     if (to === '/') return path === '/';
@@ -78,25 +80,29 @@ export default function App() {
   return (
     <div className={`app ${judge ? 'has-judge' : ''}`}>
       <header className="topbar">
-        <a className="brand" {...linkProps('/')}><Logo /><span className="brand-word">OpenField</span></a>
+        <a className="brand" {...linkProps('/')}><Logo /><span className="brand-word">{tr("OpenField")}</span></a>
         <nav className="nav">
-          {SECTIONS.map((s) => <a key={s.to} className={`nav-link ${isActive(s.to) ? 'active' : ''}`} {...linkProps(s.to)}>{s.label}</a>)}
+          {SECTIONS.map((s) => <a key={s.to} className={`nav-link ${isActive(s.to) ? 'active' : ''}`} {...linkProps(s.to)}>{tr(s.label)}</a>)}
           <span className="nav-sep" />
           {APP_LINKS.map((a) => (
             <a key={a.id} className={`nav-link ${isActive(a.route) ? 'active' : ''}`} {...linkProps(a.route)}>
-              {a.name}{a.badge === 'new' && <span className="badge">{badgeLabel(a.badge)}</span>}
+              {tr(a.name)}{a.badge === 'new' && <span className="badge">{tr(badgeLabel(a.badge))}</span>}
             </a>
           ))}
-          <a className={`nav-link nav-setup ${isActive('/setup') ? 'active' : ''}`} {...linkProps('/setup')}>Setup</a>
+          <a className={`nav-link nav-setup ${isActive('/setup') ? 'active' : ''}`} {...linkProps('/setup')}>{tr("Setup")}</a>
         </nav>
         <div className="topbar-right">
-          <a className="nav-link" {...linkProps('/setup')} title="Models and setup">Setup</a>
+          <select className="language-picker" aria-label={tr("Interface language")} value={locale} onChange={(event) => setLocale(event.target.value as 'en' | 'ru')}>
+            <option value="en">English</option>
+            <option value="ru">Русский</option>
+          </select>
+          <a className="nav-link" {...linkProps('/setup')} title={tr("Models and setup")}>{tr("Setup")}</a>
           <GpuChip />
         </div>
       </header>
       <JudgeBanner />
       <main className="main"><Suspense fallback={null}>{page}</Suspense></main>
-      {drop.dragging && drop.label && <div className="drop-veil" aria-hidden><span>{drop.label}</span></div>}
+      {drop.dragging && drop.label && <div className="drop-veil" aria-hidden><span>{tr(drop.label)}</span></div>}
       <Toast />
     </div>
   );

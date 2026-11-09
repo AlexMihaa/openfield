@@ -4,6 +4,7 @@
  * the prompt and pictures for the engine (server/cast.ts). The members a
  * prompt names show as chips under it.
  */
+import { tr } from './i18n';
 import { useMemo, useRef, useState, type KeyboardEvent, type TextareaHTMLAttributes } from 'react';
 import type { CastMember } from './api';
 import { useCast } from './castStore';
@@ -86,21 +87,21 @@ export function MentionBox({ value, onChange, dir = 'down', chips = true, onKeyD
         onClick={(e) => sync(e.currentTarget)}
         onBlur={() => setTimeout(() => setQ(null), 150)} />
       {q && (
-        <div className={`popover mention-pop ${dir}`} role="listbox" aria-label="Cast">
-          <div className="pop-title label">Cast</div>
+        <div className={`popover mention-pop ${dir}`} role="listbox" aria-label={tr("Cast")}>
+          <div className="pop-title label">{tr("Cast")}</div>
           {matches.map((m, i) => (
             <button key={m.id} type="button" role="option" aria-selected={i === hi}
               className={`pop-item mention-item ${i === hi ? 'on' : ''}`}
               onMouseDown={(e) => { e.preventDefault(); pick(m); }} onMouseEnter={() => setHi(i)}>
-              <span className="mention-face">{m.refs[0] && <img src={m.refs[0].url} alt="" />}</span>
+              <span className="mention-face">{m.refs[0] && <img src={m.refs[0].url} alt={""} />}</span>
               <span className="mention-name">{m.name}</span>
-              <small>{KIND_LABEL[m.kind]}</small>
+              <small>{tr(KIND_LABEL[m.kind])}</small>
             </button>
           ))}
           {!matches.length && (
             <div className="mention-empty">
-              {cast.length ? <>No one called <b>{q.query}</b> in your cast.</> : <>Your cast is empty.</>}{' '}
-              <a {...linkProps('/cast?new=1')} onMouseDown={(e) => e.preventDefault()}>Add a cast member</a>
+              {cast.length ? <>{tr("No one called ")}<b>{q.query}</b> {tr("in your cast.")}</> : <>{tr("Your cast is empty.")}</>}{' '}
+              <a {...linkProps('/cast?new=1')} onMouseDown={(e) => e.preventDefault()}>{tr("Add a cast member")}</a>
             </div>
           )}
         </div>
@@ -114,14 +115,14 @@ export function MentionBox({ value, onChange, dir = 'down', chips = true, onKeyD
 export function CastChips({ members, note }: { members: CastMember[]; note?: string }) {
   return (
     <div className="cast-chips">
-      <span className="label">Cast</span>
+      <span className="label">{tr("Cast")}</span>
       {members.map((m) => (
         <span key={m.id} className="cast-chip" title={m.notes || m.name}>
-          {m.refs[0] ? <img src={m.refs[0].url} alt="" /> : <Icon name="person" size={12} />}
+          {m.refs[0] ? <img src={m.refs[0].url} alt={""} /> : <Icon name="person" size={12} />}
           {m.name}
         </span>
       ))}
-      {note && <span className="label" style={{ textTransform: 'none', letterSpacing: 0 }}>{note}</span>}
+      {note && <span className="label" style={{ textTransform: 'none', letterSpacing: 0 }}>{tr(note)}</span>}
     </div>
   );
 }
