@@ -5,6 +5,9 @@ import { resolve } from 'node:path';
 import ts from 'typescript';
 import { initialLocale, translate } from '../src/i18n.js';
 import { ru } from '../src/locales/ru.js';
+import { APPS, APP_CATS, badgeLabel } from '../src/catalog.js';
+import { CAMERA_MOVES } from '../src/stage.js';
+import { tierCapNote } from '../src/renderTier.js';
 
 assert.equal(initialLocale(undefined, ['en-US', 'ru-RU']), 'ru');
 assert.equal(initialLocale(undefined, ['en-US']), 'en');
@@ -28,6 +31,10 @@ for (const [key, value] of Object.entries(ru)) {
   assert.equal(value.match(/^\s*/)?.[0], key.match(/^\s*/)?.[0], `Leading space: ${key}`);
   assert.equal(value.match(/\s*$/)?.[0], key.match(/\s*$/)?.[0], `Trailing space: ${key}`);
 }
+for (const key of [...APPS.flatMap((a) => [a.name, a.blurb]), ...APP_CATS.map((c) => c.label), ...CAMERA_MOVES.map((m) => m.name), badgeLabel('top'), badgeLabel('new'), badgeLabel('soon'), tierCapNote('stage')!, tierCapNote('reshoot')!, tierCapNote('mirror')!]) {
+  assert.ok(Object.hasOwn(ru, key), `Missing catalog display text: ${key}`);
+}
+
 // New UI messages must have a catalog entry; the English fallback is for
 // dynamic engine errors and upstream data, not accidentally untranslated controls.
 const root = resolve('src');

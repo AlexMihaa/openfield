@@ -1331,5 +1331,13 @@ export const ru: Readonly<Record<string, string>> = {
   "Dream works on video. Use Sharpen or Redraw for a still.": "«Переосмысление» работает с видео. Для изображения выберите «Резкость» или «Перерисовка».",
   "Top": "Популярное",
   "Soon": "Скоро",
-  " (gated: accept the license on Hugging Face first)": " (доступ после принятия лицензии на Hugging Face)"
+  " (gated: accept the license on Hugging Face first)": " (доступ после принятия лицензии на Hugging Face)",
+  "Crane up": "Подъём камеры",
+  "Dolly left": "Проезд влево",
+  "Dolly right": "Проезд вправо",
+  "Locked off": "Статичная камера",
+  "Reshoot stops at 480p: 720p takes nearly 3x as long for little gain. Upscale takes it further.": "«Пересъёмка» ограничена 480p: в 720p она почти втрое медленнее при небольшом улучшении. Для увеличения размера используйте «Масштабирование».",
+  "Stage stops at 720p: Layout to Render with its look guide is the same 22B IC-LoRA load as Mirror. Upscale takes it further.": "«Постановка» ограничена 720p: Layout to Render с опорным кадром нагружает модель 22B IC-LoRA так же, как перенос движения. Для увеличения размера используйте «Масштабирование».",
+  "This app stops at 720p: past it, it does not fit in 32 GB. Upscale takes it further.": "Инструмент ограничен 720p: для большего размера не хватает 32 ГБ. Используйте «Масштабирование».",
+  "This app stops at 480p: past it, it does not fit in 32 GB. Upscale takes it further.": "Инструмент ограничен 480p: для большего размера не хватает 32 ГБ. Используйте «Масштабирование»."
 };

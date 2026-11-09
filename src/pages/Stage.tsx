@@ -539,9 +539,9 @@ export default function StagePage() {
         </div>
 
         <div className="rail-section">
-          <div className="label">{tr("Camera move")}{moveName ? ` · ${moveName}` : ''}</div>
+          <div className="label">{tr("Camera move")}{moveName ? ` · ${tr(moveName)}` : ''}</div>
           <div className="chip-row">
-            {CAMERA_MOVES.map((m) => <button key={m.id} type="button" className={`chip ${scene.move === m.id ? 'on' : ''}`} onClick={() => applyMove(m.id)} title={tr("Fill the keys from key 1: {0}", { 0: m.name.toLowerCase() })}>{tr(m.name)}</button>)}
+            {CAMERA_MOVES.map((m) => <button key={m.id} type="button" className={`chip ${scene.move === m.id ? 'on' : ''}`} onClick={() => applyMove(m.id)} title={tr("Fill the keys from key 1: {0}", { 0: tr(m.name).toLowerCase() })}>{tr(m.name)}</button>)}
             {scene.move === 'custom' && <span className="chip on" title={tr("The keys were edited by hand")}>{tr("Custom")}</span>}
           </div>
         </div>
